@@ -2,12 +2,12 @@ package fetch
 
 import (
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport/http"
-	"log"
 	"os"
 	"strings"
 )
@@ -41,7 +41,7 @@ func (f *fetcher) Fetch() (*object.Commit, error) {
 	var err error
 
 	if r, err = git.PlainOpen(f.directory); err != nil {
-		log.Printf("Repository not found in '%s' cloning... \n", f.directory)
+		log.Infof("Repository not found in '%s' cloning...", f.directory)
 		r, err = git.PlainClone(f.directory, false, &git.CloneOptions{
 			URL:           f.url,
 			Auth:          f.auth,
@@ -53,11 +53,11 @@ func (f *fetcher) Fetch() (*object.Commit, error) {
 			return nil, err
 		}
 	} else {
-		log.Printf("Repository found in '%s' opening... \n", f.directory)
+		log.Infof("Repository found in '%s' opening...", f.directory)
 	}
 
 	if branch, err := r.Branch(f.branch); branch == nil || err != nil {
-		log.Printf("Branch switched to '%s' \n", f.branch)
+		log.Infof("Branch switched to '%s'", f.branch)
 		os.RemoveAll(f.directory)
 		r, err = git.PlainClone(f.directory, false, &git.CloneOptions{
 			URL:           f.url,
@@ -99,7 +99,7 @@ func (f *fetcher) Fetch() (*object.Commit, error) {
 		return nil, err
 	}
 
-	log.Printf("Pulled ref '%s' \n", ref.Hash())
+	log.Infof("Pulled ref '%s'", ref.Hash())
 
 	return commit, nil
 }

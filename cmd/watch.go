@@ -3,8 +3,8 @@ package cmd
 import (
 	"github.com/WanderaOrg/git2kube/pkg/fetch"
 	"github.com/WanderaOrg/git2kube/pkg/upload"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -61,9 +61,9 @@ func executeWatch(strings []string) error {
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
 
-	log.Printf("Started watcher")
+	log.Info("Started watcher")
 	<-signalChan
-	log.Println("Shutdown signal received, exiting...")
+	log.Info("Shutdown signal received, exiting...")
 	close(stop)
 
 	return nil

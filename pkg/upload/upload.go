@@ -2,6 +2,7 @@ package upload
 
 import (
 	"encoding/json"
+	log "github.com/sirupsen/logrus"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -11,7 +12,6 @@ import (
 	typedcore "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"log"
 	"strings"
 )
 
@@ -72,7 +72,7 @@ func (u *uploader) Upload(iter *object.FileIter) error {
 }
 
 func (u *uploader) patchConfigMap(oldMap *corev1.ConfigMap, configMaps typedcore.ConfigMapInterface, data map[string]string) error {
-	log.Printf("Patching ConfigMap '%s.%s' \n", oldMap.Namespace, oldMap.Name)
+	log.Infof("Patching ConfigMap '%s.%s'", oldMap.Namespace, oldMap.Name)
 	newMap := oldMap.DeepCopy()
 	newMap.Data = data
 
@@ -96,12 +96,12 @@ func (u *uploader) patchConfigMap(oldMap *corev1.ConfigMap, configMaps typedcore
 		return err
 	}
 
-	log.Printf("Successfully patched ConfigMap '%s.%s' \n", oldMap.Namespace, oldMap.Name)
+	log.Infof("Successfully patched ConfigMap '%s.%s'", oldMap.Namespace, oldMap.Name)
 	return nil
 }
 
 func (u *uploader) createConfigMap(configMaps typedcore.ConfigMapInterface, data map[string]string) error {
-	log.Printf("Creating ConfigMap '%s.%s' \n", u.namespace, u.name)
+	log.Infof("Creating ConfigMap '%s.%s'", u.namespace, u.name)
 	_, err := configMaps.Create(&corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      u.name,
@@ -113,7 +113,7 @@ func (u *uploader) createConfigMap(configMaps typedcore.ConfigMapInterface, data
 		return err
 	}
 
-	log.Printf("Successfully created ConfigMap '%s.%s' \n", u.namespace, u.name)
+	log.Infof("Successfully created ConfigMap '%s.%s'", u.namespace, u.name)
 	return nil
 }
 
