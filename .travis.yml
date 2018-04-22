@@ -1,0 +1,83 @@
+sudo: required
+
+services:
+- docker
+
+language: go
+go:
+- "1.10"
+- master
+
+notifications:
+  email:
+    on_success: never
+    on_failure: always
+
+matrix:
+  # It's ok if our code fails on unstable development versions of Go.
+  allow_failures:
+  - go: master
+  # Don't wait for tip tests to finish. Mark the test run green if the
+  # tests pass on the stable versions of Go.
+  fast_finish: true
+cache:
+  directories:
+  - $GOPATH/pkg
+  - $GOPATH/bin
+
+env:
+- DEP_VERSION="0.4.1"
+
+before_install:
+# Download the binary to bin folder in $GOPATH
+- curl -L -s https://github.com/golang/dep/releases/download/v${DEP_VERSION}/dep-linux-amd64 -o $GOPATH/bin/dep
+# Make the binary executable
+- chmod +x $GOPATH/bin/dep
+# Get golint
+- go get github.com/golang/lint/golint
+
+install:
+- dep ensure -vendor-only
+
+script:
+- go test -v ./...
+- go vet -v ./...
+- golint -set_exit_status $(go list ./...)
+
+before_deploy:
+  - PLATFORMS=(darwin/amd64 freebsd/amd64 linux/amd64 windows/amd64)
+
+ # build binary for all archs
+  - |
+    for PLATFORM in "${PLATFORMS[@]}"; do
+      echo "Building $PLATFORM"
+      GOOS=${PLATFORM%/*}
+      GOARCH=${PLATFORM#*/}
+      if [ "$GOOS" = "windows" ]; then
+        build_cmd="GOOS=$GOOS GOARCH=$GOARCH go build -o scccmd -ldflags '-w -s'"
+      else
+        build_cmd="CGO_ENABLED=0 GOOS=$GOOS GOARCH=$GOARCH go build -o scccmd -ldflags '-d -w -s'"
+      fi
+      if ! eval $build_cmd; then
+        echo "Failed building sample for $PLATFORM" && return 1
+      fi
+      if [ "$GOOS" = "windows" ]; then
+        zip scccmd-${GOOS}-${GOARCH}.zip scccmd
+      else
+        tar cvzf scccmd-${GOOS}-${GOARCH}.tgz scccmd
+      fi
+    done
+  - ls
+
+deploy:
+  provider: releases
+  api_key:
+    secure: q+w7Sw9tDrqcVtkTXHSN/dVQlYmN9hceQ+YbPVEc4mKKAUkrIEsdeyvYEyJCwimyCpeMsY4DoIoBG6vBQR7NEVUBaX0xq8KoMB9H93vVKaBxFhHo1KfnzBXqbPCpqfzySX096MMZQWJjbv7pljkYSzREFJhFKln3Ij1DDpt0SeWsjbFdthc05LbRMQpv0K2GWSMY68603sLtBL2s1Xfc5K3XXdIl7Fe94G5NbnqsqWuSShqHYpS4/lZYzzbHvpavXnn2jyNFlhJeyMpojdvrytQu15DEds3FTxmD8tJ9cKcPYPlfQ4cvFIahdHw4t3FEgkpT1cgLpwJgNMSDiGy5pQi5IS/v0CXgXAHKv9UnKLN/pc19PwGCiXH7HkOcYFPWQfOLgm4KQ8Ufx8TISx3GXBi7bWEkmINO9/Zt2ZzCg+KFZmpDD5iQypAue6rs1CTT+59gsJAitNoT+h6YR8PCMbymlwUJ8K40/Fi56vPPJUXVrEei7u0nD2tuZLqR1j0brL5YpRAi/FQvx3DJXrBqwXQDYGI+ksU/qSMSgnyveqiTvobPd3vS5a3hGlFVTzNPcVVv85Ro0SjuwjR2mdUXk/qwwz1BmTfQDsOucs7IBUG6yJfP6vuYQWyXfikC+NJ4MRZ4RpXQWt7JRVpSV/F4aI0zjas5ClMPqYHVj5YYpXU=
+  file:
+    - "scccmd-darwin-amd64.tgz"
+    - "scccmd-freebsd-amd64.tgz"
+    - "scccmd-linux-amd64.tgz"
+    - "scccmd-windows-amd64.zip"
+  skip_cleanup: true
+  on:
+    tags: true
