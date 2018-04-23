@@ -12,7 +12,15 @@ import (
 )
 
 var wp = struct {
-	interval int
+	kubeconfig bool
+	git        string
+	branch     string
+	folder     string
+	mapname    string
+	namespace  string
+	mergetype  string
+	verbose    bool
+	interval   int
 }{}
 
 var watchCmd = &cobra.Command{
@@ -24,18 +32,18 @@ var watchCmd = &cobra.Command{
 }
 
 func executeWatch(strings []string) error {
-	if err := os.MkdirAll(rootParams.folder, 755); err != nil {
+	if err := os.MkdirAll(wp.folder, 755); err != nil {
 		return err
 	}
 
-	auth, err := fetch.NewAuth(rootParams.git)
+	auth, err := fetch.NewAuth(wp.git)
 	if err != nil {
 		return err
 	}
 
-	fetcher := fetch.NewFetcher(rootParams.git, rootParams.folder, rootParams.branch, auth)
+	fetcher := fetch.NewFetcher(wp.git, wp.folder, wp.branch, auth)
 
-	uploader, err := upload.NewUploader(rootParams.kubeconfig, rootParams.mapname, rootParams.namespace)
+	uploader, err := upload.NewUploader(wp.kubeconfig, wp.mapname, wp.namespace, upload.MergeType(lp.mergetype))
 	if err != nil {
 		return err
 	}
@@ -90,4 +98,16 @@ func refresh(fetcher fetch.Fetcher, uploader upload.Uploader) error {
 
 func init() {
 	watchCmd.Flags().IntVarP(&wp.interval, "interval", "i", 10, "interval in seconds in which to try refreshing ConfigMap from git")
+	watchCmd.Flags().StringVarP(&wp.mergetype, "merge-type", "", "delete", "how to merge ConfigMap data whether to also delete missing values or just upsert new (options: delete|upsert)")
+	watchCmd.Flags().BoolVarP(&wp.verbose, "verbose", "v", false, "verbose output")
+	watchCmd.Flags().BoolVarP(&wp.kubeconfig, "kubeconfig", "k", false, "if locally stored ~/.kube/config should be used, InCluster config will be used if false")
+	watchCmd.Flags().StringVarP(&wp.git, "git", "g", "", "git repository address, either http(s) or ssh protocol has to be specified")
+	watchCmd.Flags().StringVarP(&wp.branch, "branch", "b", "master", "branch name to pull")
+	watchCmd.Flags().StringVarP(&wp.folder, "cache-folder", "c", "/tmp/git2kube/data/", "destination on filesystem where cache of repository will be stored")
+	watchCmd.Flags().StringVarP(&wp.namespace, "namespace", "n", "default", "target namespace for resulting ConfigMap")
+	watchCmd.Flags().StringVarP(&wp.mapname, "configmap", "m", "", "target namespace for resulting ConfigMap")
+
+	watchCmd.MarkFlagFilename("kubeconfig")
+	watchCmd.MarkFlagRequired("git")
+	watchCmd.MarkFlagRequired("configmap")
 }

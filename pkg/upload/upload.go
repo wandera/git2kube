@@ -2,6 +2,7 @@ package upload
 
 import (
 	"encoding/json"
+	"github.com/imdario/mergo"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
 	corev1 "k8s.io/api/core/v1"
@@ -17,8 +18,19 @@ import (
 
 const refAnnotation = "git2kube.github.com/ref"
 
+// MergeType how to merge ConfigMap data
+type MergeType string
+
+const (
+	// Delete merge all keys (files) including removal of missing keys
+	Delete MergeType = "delete"
+	// Upsert merge all keys (files) but don't remove missing keys from the repository
+	Upsert MergeType = "upsert"
+)
+
 // Uploader uploading date to K8s configmap
 type Uploader interface {
+	// Upload files into config map tagged by commitID
 	Upload(commitID string, iter *object.FileIter) error
 }
 
@@ -27,11 +39,12 @@ type uploader struct {
 	clientset  *kubernetes.Clientset
 	namespace  string
 	name       string
+	mergeType  MergeType
 }
 
 // NewUploader creates new Uploader
-func NewUploader(configpath string, name string, namespace string) (Uploader, error) {
-	restconfig, err := restConfig(configpath)
+func NewUploader(kubeconfig bool, name string, namespace string, mergeType MergeType) (Uploader, error) {
+	restconfig, err := restConfig(kubeconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -42,6 +55,7 @@ func NewUploader(configpath string, name string, namespace string) (Uploader, er
 	}
 
 	return &uploader{
+		mergeType:  mergeType,
 		restconfig: restconfig,
 		clientset:  clientset,
 		namespace:  namespace,
@@ -76,7 +90,17 @@ func (u *uploader) Upload(commitID string, iter *object.FileIter) error {
 func (u *uploader) patchConfigMap(oldMap *corev1.ConfigMap, configMaps typedcore.ConfigMapInterface, data map[string]string, commitID string) error {
 	log.Infof("Patching ConfigMap '%s.%s'", oldMap.Namespace, oldMap.Name)
 	newMap := oldMap.DeepCopy()
-	newMap.Data = data
+
+	switch u.mergeType {
+	case Delete:
+		newMap.Data = data
+	case Upsert:
+		if err := mergo.Merge(&newMap.Data, data, mergo.WithOverride); err != nil {
+			if err != nil {
+				return err
+			}
+		}
+	}
 
 	if newMap.Annotations == nil {
 		newMap.Annotations = make(map[string]string)
@@ -143,8 +167,8 @@ func iterToData(iter *object.FileIter) (map[string]string, error) {
 	return data, err
 }
 
-func restConfig(kubeconfig string) (*rest.Config, error) {
-	if kubeconfig != "" {
+func restConfig(kubeconfig bool) (*rest.Config, error) {
+	if kubeconfig {
 		loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
 		configOverrides := &clientcmd.ConfigOverrides{}
 		kubeConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, configOverrides)

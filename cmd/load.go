@@ -7,6 +7,17 @@ import (
 	"os"
 )
 
+var lp = struct {
+	kubeconfig bool
+	git        string
+	branch     string
+	folder     string
+	mapname    string
+	namespace  string
+	mergetype  string
+	verbose    bool
+}{}
+
 var loadCmd = &cobra.Command{
 	Use:   "load",
 	Short: "Loads files from git repository into ConfigMap",
@@ -16,18 +27,18 @@ var loadCmd = &cobra.Command{
 }
 
 func executeLoad(args []string) error {
-	if err := os.MkdirAll(rootParams.folder, 755); err != nil {
+	if err := os.MkdirAll(lp.folder, 755); err != nil {
 		return err
 	}
 
-	auth, err := fetch.NewAuth(rootParams.git)
+	auth, err := fetch.NewAuth(lp.git)
 	if err != nil {
 		return err
 	}
 
-	fetcher := fetch.NewFetcher(rootParams.git, rootParams.folder, rootParams.branch, auth)
+	fetcher := fetch.NewFetcher(lp.git, lp.folder, lp.branch, auth)
 
-	uploader, err := upload.NewUploader(rootParams.kubeconfig, rootParams.mapname, rootParams.namespace)
+	uploader, err := upload.NewUploader(lp.kubeconfig, lp.mapname, lp.namespace, upload.MergeType(lp.mergetype))
 	if err != nil {
 		return err
 	}
@@ -48,4 +59,19 @@ func executeLoad(args []string) error {
 	}
 
 	return err
+}
+
+func init() {
+	loadCmd.Flags().BoolVarP(&lp.verbose, "verbose", "v", false, "verbose output")
+	loadCmd.Flags().BoolVarP(&lp.kubeconfig, "kubeconfig", "k", false, "if locally stored ~/.kube/config should be used, InCluster config will be used if false")
+	loadCmd.Flags().StringVarP(&lp.mergetype, "merge-type", "", "delete", "how to merge ConfigMap data whether to also delete missing values or just upsert new (options: delete|upsert)")
+	loadCmd.Flags().StringVarP(&lp.git, "git", "g", "", "git repository address, either http(s) or ssh protocol has to be specified")
+	loadCmd.Flags().StringVarP(&lp.branch, "branch", "b", "master", "branch name to pull")
+	loadCmd.Flags().StringVarP(&lp.folder, "cache-folder", "c", "/tmp/git2kube/data/", "destination on filesystem where cache of repository will be stored")
+	loadCmd.Flags().StringVarP(&lp.namespace, "namespace", "n", "default", "target namespace for resulting ConfigMap")
+	loadCmd.Flags().StringVarP(&lp.mapname, "configmap", "m", "", "target namespace for resulting ConfigMap")
+
+	loadCmd.MarkFlagFilename("kubeconfig")
+	loadCmd.MarkFlagRequired("git")
+	loadCmd.MarkFlagRequired("configmap")
 }
