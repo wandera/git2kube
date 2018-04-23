@@ -49,7 +49,7 @@ func executeWatch(strings []string) error {
 			case <-ticker.C:
 				err := refresh(fetcher, uploader)
 				if err != nil {
-					log.Println(err)
+					log.Warn(err)
 				}
 			case <-stop:
 				ticker.Stop()
@@ -80,7 +80,7 @@ func refresh(fetcher fetch.Fetcher, uploader upload.Uploader) error {
 		return err
 	}
 
-	err = uploader.Upload(iter)
+	err = uploader.Upload(c.ID().String(), iter)
 	if err != nil {
 		return err
 	}

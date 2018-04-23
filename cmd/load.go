@@ -42,7 +42,7 @@ func executeLoad(args []string) error {
 		return err
 	}
 
-	err = uploader.Upload(iter)
+	err = uploader.Upload(c.ID().String(), iter)
 	if err != nil {
 		return err
 	}

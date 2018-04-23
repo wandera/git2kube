@@ -15,9 +15,11 @@ import (
 	"strings"
 )
 
+const refAnnotation = "git2kube.github.com/ref"
+
 // Uploader uploading date to K8s configmap
 type Uploader interface {
-	Upload(iter *object.FileIter) error
+	Upload(commitId string, iter *object.FileIter) error
 }
 
 type uploader struct {
@@ -47,7 +49,7 @@ func NewUploader(configpath string, name string, namespace string) (Uploader, er
 	}, nil
 }
 
-func (u *uploader) Upload(iter *object.FileIter) error {
+func (u *uploader) Upload(commitId string, iter *object.FileIter) error {
 	configMaps := u.clientset.CoreV1().ConfigMaps(u.namespace)
 
 	data, err := iterToData(iter)
@@ -57,12 +59,12 @@ func (u *uploader) Upload(iter *object.FileIter) error {
 
 	oldMap, err := configMaps.Get(u.name, metav1.GetOptions{})
 	if err == nil {
-		err = u.patchConfigMap(oldMap, configMaps, data)
+		err = u.patchConfigMap(oldMap, configMaps, data, commitId)
 		if err != nil {
 			return err
 		}
 	} else {
-		err = u.createConfigMap(configMaps, data)
+		err = u.createConfigMap(configMaps, data, commitId)
 		if err != nil {
 			return err
 		}
@@ -71,10 +73,15 @@ func (u *uploader) Upload(iter *object.FileIter) error {
 	return nil
 }
 
-func (u *uploader) patchConfigMap(oldMap *corev1.ConfigMap, configMaps typedcore.ConfigMapInterface, data map[string]string) error {
+func (u *uploader) patchConfigMap(oldMap *corev1.ConfigMap, configMaps typedcore.ConfigMapInterface, data map[string]string, commitId string) error {
 	log.Infof("Patching ConfigMap '%s.%s'", oldMap.Namespace, oldMap.Name)
 	newMap := oldMap.DeepCopy()
 	newMap.Data = data
+
+	if newMap.Annotations == nil {
+		newMap.Annotations = make(map[string]string)
+	}
+	newMap.Annotations[refAnnotation] = commitId
 
 	oldData, err := json.Marshal(oldMap)
 	if err != nil {
@@ -100,12 +107,15 @@ func (u *uploader) patchConfigMap(oldMap *corev1.ConfigMap, configMaps typedcore
 	return nil
 }
 
-func (u *uploader) createConfigMap(configMaps typedcore.ConfigMapInterface, data map[string]string) error {
+func (u *uploader) createConfigMap(configMaps typedcore.ConfigMapInterface, data map[string]string, commitId string) error {
 	log.Infof("Creating ConfigMap '%s.%s'", u.namespace, u.name)
 	_, err := configMaps.Create(&corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      u.name,
 			Namespace: u.namespace,
+			Annotations: map[string]string{
+				refAnnotation: commitId,
+			},
 		},
 		Data: data,
 	})
