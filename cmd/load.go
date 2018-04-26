@@ -78,7 +78,7 @@ func executeLoad() error {
 
 func init() {
 	loadCmd.Flags().BoolVarP(&lp.verbose, "verbose", "v", false, "verbose output")
-	loadCmd.Flags().BoolVarP(&lp.kubeconfig, "kubeconfig", "k", false, "if locally stored ~/.kube/config should be used, InCluster config will be used if false")
+	loadCmd.Flags().BoolVarP(&lp.kubeconfig, "kubeconfig", "k", false, "true if locally stored ~/.kube/config should be used, InCluster config will be used if false (options: true|false) (default: false)")
 	loadCmd.Flags().StringVarP(&lp.mergetype, "merge-type", "", "delete", "how to merge ConfigMap data whether to also delete missing values or just upsert new (options: delete|upsert)")
 	loadCmd.Flags().StringVarP(&lp.git, "git", "g", "", "git repository address, either http(s) or ssh protocol has to be specified")
 	loadCmd.Flags().StringVarP(&lp.branch, "branch", "b", "master", "branch name to pull")
