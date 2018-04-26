@@ -7,3 +7,16 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/WanderaOrg/scccmd/blob/master/LICENSE)
 
 Tool for syncing git with K8s ConfigMap.
+
+### How to develop
+* Checkout into your GOROOT directory (e.g. /go/src/github.com/WanderaOrg/git2kube)
+* `cd` into the folder and run `dep ensure --vendor-only`
+* Tests are started by `go test -v ./...`
+* Or if you dont want to setup your local go env just use the provided Dockerfile
+
+### Docker repository
+The tool is released as docker image as well, check the [repository](https://hub.docker.com/r/wanderadock/git2kube/).
+
+
+### Tool documentation
+[docs](docs/git2kube.md) - Generated documentation for the tool
