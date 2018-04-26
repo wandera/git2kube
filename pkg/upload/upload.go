@@ -13,6 +13,7 @@ import (
 	typedcore "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"regexp"
 	"strings"
 )
 
@@ -40,10 +41,12 @@ type uploader struct {
 	namespace  string
 	name       string
 	mergeType  MergeType
+	include    []*regexp.Regexp
+	exclude    []*regexp.Regexp
 }
 
 // NewUploader creates new Uploader
-func NewUploader(kubeconfig bool, name string, namespace string, mergeType MergeType) (Uploader, error) {
+func NewUploader(kubeconfig bool, name string, namespace string, mergeType MergeType, include []string, exclude []string) (Uploader, error) {
 	restconfig, err := restConfig(kubeconfig)
 	if err != nil {
 		return nil, err
@@ -54,8 +57,22 @@ func NewUploader(kubeconfig bool, name string, namespace string, mergeType Merge
 		return nil, err
 	}
 
+	includeRegex, err := stringsToRegExp(include)
+	if err != nil {
+		return nil, err
+	}
+	log.Infof("Loaded include rules %s", includeRegex)
+
+	excludeRegex, err := stringsToRegExp(exclude)
+	if err != nil {
+		return nil, err
+	}
+	log.Infof("Loaded exclude rules %s", excludeRegex)
+
 	return &uploader{
 		mergeType:  mergeType,
+		include:    includeRegex,
+		exclude:    excludeRegex,
 		restconfig: restconfig,
 		clientset:  clientset,
 		namespace:  namespace,
@@ -66,7 +83,7 @@ func NewUploader(kubeconfig bool, name string, namespace string, mergeType Merge
 func (u *uploader) Upload(commitID string, iter *object.FileIter) error {
 	configMaps := u.clientset.CoreV1().ConfigMaps(u.namespace)
 
-	data, err := iterToData(iter)
+	data, err := u.iterToData(iter)
 	if err != nil {
 		return err
 	}
@@ -151,10 +168,10 @@ func (u *uploader) createConfigMap(configMaps typedcore.ConfigMapInterface, data
 	return nil
 }
 
-func iterToData(iter *object.FileIter) (map[string]string, error) {
+func (u *uploader) iterToData(iter *object.FileIter) (map[string]string, error) {
 	var data = make(map[string]string)
 	err := iter.ForEach(func(file *object.File) error {
-		if !strings.HasPrefix(file.Name, ".") {
+		if u.filterFile(file) {
 			content, err := file.Contents()
 			if err != nil {
 				return err
@@ -167,12 +184,47 @@ func iterToData(iter *object.FileIter) (map[string]string, error) {
 	return data, err
 }
 
+func (u *uploader) filterFile(file *object.File) bool {
+	pass := false
+	for _, inc := range u.include {
+		if inc.MatchString(file.Name) {
+			pass = true
+			break
+		}
+	}
+
+	for _, exc := range u.exclude {
+		if exc.MatchString(file.Name) {
+			pass = false
+			break
+		}
+	}
+
+	log.Debugf("[%t] '%s'", pass, file.Name)
+	return pass
+}
+
 func restConfig(kubeconfig bool) (*rest.Config, error) {
 	if kubeconfig {
+		log.Infof("Loading kubeconfig")
 		loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
 		configOverrides := &clientcmd.ConfigOverrides{}
 		kubeConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, configOverrides)
 		return kubeConfig.ClientConfig()
 	}
+	log.Infof("Loading InCluster config")
 	return rest.InClusterConfig()
+}
+
+func stringsToRegExp(strings []string) ([]*regexp.Regexp, error) {
+	result := make([]*regexp.Regexp, len(strings))
+	for i, str := range strings {
+		regex, err := regexp.Compile(str)
+		if err != nil {
+			return nil, err
+		}
+		result[i] = regex
+	}
+
+	return result, nil
 }

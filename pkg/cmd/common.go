@@ -5,13 +5,10 @@ import (
 	"os"
 )
 
+// ExpandArgs expands environment variables in a slice of arguments for a cmd
 func ExpandArgs(cmd *cobra.Command, args []string) error {
-	for i := 0; i < len(args); i++ {
-		args[i] = os.ExpandEnv(args[i])
+	for i, arg := range args {
+		args[i] = os.ExpandEnv(arg)
 	}
-	err := cmd.Flags().Parse(args)
-	if err != nil {
-		return err
-	}
-	return nil
+	return cmd.Flags().Parse(args)
 }

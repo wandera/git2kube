@@ -22,6 +22,8 @@ var wp = struct {
 	mergetype  string
 	verbose    bool
 	interval   int
+	include    []string
+	exclude    []string
 }{}
 
 var watchCmd = &cobra.Command{
@@ -46,7 +48,7 @@ func executeWatch() error {
 
 	fetcher := fetch.NewFetcher(wp.git, wp.folder, wp.branch, auth)
 
-	uploader, err := upload.NewUploader(wp.kubeconfig, wp.mapname, wp.namespace, upload.MergeType(lp.mergetype))
+	uploader, err := upload.NewUploader(wp.kubeconfig, wp.mapname, wp.namespace, upload.MergeType(lp.mergetype), wp.include, wp.exclude)
 	if err != nil {
 		return err
 	}
@@ -103,12 +105,14 @@ func init() {
 	watchCmd.Flags().IntVarP(&wp.interval, "interval", "i", 10, "interval in seconds in which to try refreshing ConfigMap from git")
 	watchCmd.Flags().StringVarP(&wp.mergetype, "merge-type", "", "delete", "how to merge ConfigMap data whether to also delete missing values or just upsert new (options: delete|upsert)")
 	watchCmd.Flags().BoolVarP(&wp.verbose, "verbose", "v", false, "verbose output")
-	watchCmd.Flags().BoolVarP(&wp.kubeconfig, "kubeconfig", "k", false, "if locally stored ~/.kube/config should be used, InCluster config will be used if false")
+	watchCmd.Flags().BoolVarP(&wp.kubeconfig, "kubeconfig", "k", false, "if locally stored ~/.kube/config should be used, InCluster config will be used if false (default false)")
 	watchCmd.Flags().StringVarP(&wp.git, "git", "g", "", "git repository address, either http(s) or ssh protocol has to be specified")
 	watchCmd.Flags().StringVarP(&wp.branch, "branch", "b", "master", "branch name to pull")
 	watchCmd.Flags().StringVarP(&wp.folder, "cache-folder", "c", "/tmp/git2kube/data/", "destination on filesystem where cache of repository will be stored")
 	watchCmd.Flags().StringVarP(&wp.namespace, "namespace", "n", "default", "target namespace for resulting ConfigMap")
 	watchCmd.Flags().StringVarP(&wp.mapname, "configmap", "m", "", "target namespace for resulting ConfigMap")
+	watchCmd.Flags().StringSliceVar(&wp.include, "include", []string{".*"}, "regex that if is a match include the file in the upload, example: '*.yaml' or 'folder/*' if you want to match a folder")
+	watchCmd.Flags().StringSliceVar(&wp.exclude, "exclude", []string{"^\\..*"}, "regex that if is a match exclude the file from the upload, example: '*.yaml' or 'folder/*' if you want to match a folder")
 
 	watchCmd.MarkFlagFilename("kubeconfig")
 	watchCmd.MarkFlagRequired("git")

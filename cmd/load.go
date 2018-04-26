@@ -17,6 +17,8 @@ var lp = struct {
 	namespace  string
 	mergetype  string
 	verbose    bool
+	include    []string
+	exclude    []string
 }{}
 
 var loadCmd = &cobra.Command{
@@ -40,7 +42,7 @@ func executeLoad() error {
 
 	fetcher := fetch.NewFetcher(lp.git, lp.folder, lp.branch, auth)
 
-	uploader, err := upload.NewUploader(lp.kubeconfig, lp.mapname, lp.namespace, upload.MergeType(lp.mergetype))
+	uploader, err := upload.NewUploader(lp.kubeconfig, lp.mapname, lp.namespace, upload.MergeType(lp.mergetype), lp.include, lp.exclude)
 	if err != nil {
 		return err
 	}
@@ -72,6 +74,8 @@ func init() {
 	loadCmd.Flags().StringVarP(&lp.folder, "cache-folder", "c", "/tmp/git2kube/data/", "destination on filesystem where cache of repository will be stored")
 	loadCmd.Flags().StringVarP(&lp.namespace, "namespace", "n", "default", "target namespace for resulting ConfigMap")
 	loadCmd.Flags().StringVarP(&lp.mapname, "configmap", "m", "", "target namespace for resulting ConfigMap")
+	loadCmd.Flags().StringSliceVar(&lp.include, "include", []string{".*"}, "regex that if is a match include the file in the upload, example: '*.yaml' or 'folder/*' if you want to match a folder")
+	loadCmd.Flags().StringSliceVar(&lp.exclude, "exclude", []string{"^\\..*"}, "regex that if is a match exclude the file from the upload, example: '*.yaml' or 'folder/*' if you want to match a folder")
 
 	loadCmd.MarkFlagFilename("kubeconfig")
 	loadCmd.MarkFlagRequired("git")
