@@ -2,6 +2,7 @@ package upload
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/imdario/mergo"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
@@ -36,18 +37,32 @@ type Uploader interface {
 }
 
 type uploader struct {
-	restconfig *rest.Config
-	clientset  *kubernetes.Clientset
-	namespace  string
-	name       string
-	mergeType  MergeType
-	include    []*regexp.Regexp
-	exclude    []*regexp.Regexp
+	restconfig  *rest.Config
+	clientset   *kubernetes.Clientset
+	namespace   string
+	name        string
+	mergeType   MergeType
+	labels      map[string]string
+	annotations map[string]string
+	includes    []*regexp.Regexp
+	excludes    []*regexp.Regexp
+}
+
+// UploaderOptions uploader options
+type UploaderOptions struct {
+	Kubeconfig    bool
+	ConfigMapName string
+	Namespace     string
+	MergeType     MergeType
+	Includes      []string
+	Excludes      []string
+	Labels        []string
+	Annotations   []string
 }
 
 // NewUploader creates new Uploader
-func NewUploader(kubeconfig bool, name string, namespace string, mergeType MergeType, include []string, exclude []string) (Uploader, error) {
-	restconfig, err := restConfig(kubeconfig)
+func NewUploader(o *UploaderOptions) (Uploader, error) {
+	restconfig, err := restConfig(o.Kubeconfig)
 	if err != nil {
 		return nil, err
 	}
@@ -57,26 +72,38 @@ func NewUploader(kubeconfig bool, name string, namespace string, mergeType Merge
 		return nil, err
 	}
 
-	includeRegex, err := stringsToRegExp(include)
+	includesRegex, err := stringsToRegExp(o.Includes)
 	if err != nil {
 		return nil, err
 	}
-	log.Infof("Loaded include rules %s", includeRegex)
+	log.Infof("Loaded include rules %s", includesRegex)
 
-	excludeRegex, err := stringsToRegExp(exclude)
+	excludesRegex, err := stringsToRegExp(o.Excludes)
 	if err != nil {
 		return nil, err
 	}
-	log.Infof("Loaded exclude rules %s", excludeRegex)
+	log.Infof("Loaded exclude rules %s", excludesRegex)
+
+	labelsParsed, err := stringsToMap(o.Labels)
+	if err != nil {
+		return nil, err
+	}
+
+	annotationsParsed, err := stringsToMap(o.Annotations)
+	if err != nil {
+		return nil, err
+	}
 
 	return &uploader{
-		mergeType:  mergeType,
-		include:    includeRegex,
-		exclude:    excludeRegex,
-		restconfig: restconfig,
-		clientset:  clientset,
-		namespace:  namespace,
-		name:       name,
+		mergeType:   o.MergeType,
+		includes:    includesRegex,
+		excludes:    excludesRegex,
+		labels:      labelsParsed,
+		annotations: annotationsParsed,
+		restconfig:  restconfig,
+		clientset:   clientset,
+		namespace:   o.Namespace,
+		name:        o.ConfigMapName,
 	}, nil
 }
 
@@ -119,10 +146,18 @@ func (u *uploader) patchConfigMap(oldMap *corev1.ConfigMap, configMaps typedcore
 		}
 	}
 
-	if newMap.Annotations == nil {
-		newMap.Annotations = make(map[string]string)
+	if err := mergo.Merge(&newMap.Annotations, u.annotations, mergo.WithOverride); err != nil {
+		if err != nil {
+			return err
+		}
 	}
 	newMap.Annotations[refAnnotation] = commitID
+
+	if err := mergo.Merge(&newMap.Labels, u.labels, mergo.WithOverride); err != nil {
+		if err != nil {
+			return err
+		}
+	}
 
 	oldData, err := json.Marshal(oldMap)
 	if err != nil {
@@ -150,13 +185,16 @@ func (u *uploader) patchConfigMap(oldMap *corev1.ConfigMap, configMaps typedcore
 
 func (u *uploader) createConfigMap(configMaps typedcore.ConfigMapInterface, data map[string]string, commitID string) error {
 	log.Infof("Creating ConfigMap '%s.%s'", u.namespace, u.name)
+
+	annotations := u.annotations
+	annotations[refAnnotation] = commitID
+
 	_, err := configMaps.Create(&corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      u.name,
-			Namespace: u.namespace,
-			Annotations: map[string]string{
-				refAnnotation: commitID,
-			},
+			Name:        u.name,
+			Namespace:   u.namespace,
+			Annotations: annotations,
+			Labels:      u.labels,
 		},
 		Data: data,
 	})
@@ -186,14 +224,14 @@ func (u *uploader) iterToData(iter *object.FileIter) (map[string]string, error) 
 
 func (u *uploader) filterFile(file *object.File) bool {
 	pass := false
-	for _, inc := range u.include {
+	for _, inc := range u.includes {
 		if inc.MatchString(file.Name) {
 			pass = true
 			break
 		}
 	}
 
-	for _, exc := range u.exclude {
+	for _, exc := range u.excludes {
 		if exc.MatchString(file.Name) {
 			pass = false
 			break
@@ -216,14 +254,27 @@ func restConfig(kubeconfig bool) (*rest.Config, error) {
 	return rest.InClusterConfig()
 }
 
-func stringsToRegExp(strings []string) ([]*regexp.Regexp, error) {
-	result := make([]*regexp.Regexp, len(strings))
-	for i, str := range strings {
+func stringsToRegExp(strs []string) ([]*regexp.Regexp, error) {
+	result := make([]*regexp.Regexp, len(strs))
+	for i, str := range strs {
 		regex, err := regexp.Compile(str)
 		if err != nil {
 			return nil, err
 		}
 		result[i] = regex
+	}
+
+	return result, nil
+}
+
+func stringsToMap(strs []string) (map[string]string, error) {
+	result := make(map[string]string)
+	for _, str := range strs {
+		if !strings.Contains(str, "=") {
+			return nil, fmt.Errorf("argument '%s' does not contain required char '='", str)
+		}
+		split := strings.Split(str, "=")
+		result[split[0]] = split[1]
 	}
 
 	return result, nil

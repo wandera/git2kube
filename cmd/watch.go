@@ -13,17 +13,19 @@ import (
 )
 
 var wp = struct {
-	kubeconfig bool
-	git        string
-	branch     string
-	folder     string
-	mapname    string
-	namespace  string
-	mergetype  string
-	verbose    bool
-	interval   int
-	include    []string
-	exclude    []string
+	kubeconfig  bool
+	git         string
+	branch      string
+	folder      string
+	mapname     string
+	namespace   string
+	mergetype   string
+	verbose     bool
+	interval    int
+	includes    []string
+	excludes    []string
+	labels      []string
+	annotations []string
 }{}
 
 var watchCmd = &cobra.Command{
@@ -48,7 +50,16 @@ func executeWatch() error {
 
 	fetcher := fetch.NewFetcher(wp.git, wp.folder, wp.branch, auth)
 
-	uploader, err := upload.NewUploader(wp.kubeconfig, wp.mapname, wp.namespace, upload.MergeType(lp.mergetype), wp.include, wp.exclude)
+	uploader, err := upload.NewUploader(&upload.UploaderOptions{
+		Kubeconfig:    wp.kubeconfig,
+		ConfigMapName: wp.mapname,
+		Namespace:     wp.namespace,
+		MergeType:     upload.MergeType(wp.mergetype),
+		Includes:      wp.includes,
+		Excludes:      wp.excludes,
+		Annotations:   wp.annotations,
+		Labels:        wp.labels,
+	})
 	if err != nil {
 		return err
 	}
@@ -111,8 +122,10 @@ func init() {
 	watchCmd.Flags().StringVarP(&wp.folder, "cache-folder", "c", "/tmp/git2kube/data/", "destination on filesystem where cache of repository will be stored")
 	watchCmd.Flags().StringVarP(&wp.namespace, "namespace", "n", "default", "target namespace for resulting ConfigMap")
 	watchCmd.Flags().StringVarP(&wp.mapname, "configmap", "m", "", "target namespace for resulting ConfigMap")
-	watchCmd.Flags().StringSliceVar(&wp.include, "include", []string{".*"}, "regex that if is a match include the file in the upload, example: '*.yaml' or 'folder/*' if you want to match a folder")
-	watchCmd.Flags().StringSliceVar(&wp.exclude, "exclude", []string{"^\\..*"}, "regex that if is a match exclude the file from the upload, example: '*.yaml' or 'folder/*' if you want to match a folder")
+	watchCmd.Flags().StringSliceVar(&wp.includes, "include", []string{".*"}, "regex that if is a match includes the file in the upload, example: '*.yaml' or 'folder/*' if you want to match a folder")
+	watchCmd.Flags().StringSliceVar(&wp.excludes, "exclude", []string{"^\\..*"}, "regex that if is a match excludes the file from the upload, example: '*.yaml' or 'folder/*' if you want to match a folder")
+	watchCmd.Flags().StringSliceVar(&wp.labels, "label", []string{}, "label to add to K8s ConfigMap (format NAME=VALUE)")
+	watchCmd.Flags().StringSliceVar(&wp.annotations, "annotation", []string{}, "annotation to add to K8s ConfigMap (format NAME=VALUE)")
 
 	watchCmd.MarkFlagFilename("kubeconfig")
 	watchCmd.MarkFlagRequired("git")
