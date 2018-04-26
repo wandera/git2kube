@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/WanderaOrg/git2kube/pkg/cmd"
 	"github.com/WanderaOrg/git2kube/pkg/fetch"
 	"github.com/WanderaOrg/git2kube/pkg/upload"
 	log "github.com/sirupsen/logrus"
@@ -24,14 +25,16 @@ var wp = struct {
 }{}
 
 var watchCmd = &cobra.Command{
-	Use:   "watch",
-	Short: "Decrypt the value server-side and prints the response",
+	Use:                "watch",
+	Short:              "Decrypt the value server-side and prints the response",
+	DisableFlagParsing: true,
+	PreRunE:            cmd.ExpandArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return executeWatch(args)
+		return executeWatch()
 	},
 }
 
-func executeWatch(strings []string) error {
+func executeWatch() error {
 	if err := os.MkdirAll(wp.folder, 755); err != nil {
 		return err
 	}

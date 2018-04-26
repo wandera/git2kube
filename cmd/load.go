@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/WanderaOrg/git2kube/pkg/cmd"
 	"github.com/WanderaOrg/git2kube/pkg/fetch"
 	"github.com/WanderaOrg/git2kube/pkg/upload"
 	"github.com/spf13/cobra"
@@ -19,14 +20,15 @@ var lp = struct {
 }{}
 
 var loadCmd = &cobra.Command{
-	Use:   "load",
-	Short: "Loads files from git repository into ConfigMap",
+	Use:     "load",
+	Short:   "Loads files from git repository into ConfigMap",
+	PreRunE: cmd.ExpandArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return executeLoad(args)
+		return executeLoad()
 	},
 }
 
-func executeLoad(args []string) error {
+func executeLoad() error {
 	if err := os.MkdirAll(lp.folder, 755); err != nil {
 		return err
 	}
