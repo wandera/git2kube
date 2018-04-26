@@ -1,10 +1,10 @@
 ## git2kube watch
 
-Decrypt the value server-side and prints the response
+Runs watcher that periodically check the provided repository and updates K8s configmap accordingly
 
 ### Synopsis
 
-Decrypt the value server-side and prints the response
+Runs watcher that periodically check the provided repository and updates K8s configmap accordingly
 
 ```
 git2kube watch [flags]

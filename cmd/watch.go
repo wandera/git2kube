@@ -28,7 +28,7 @@ var wp = struct {
 
 var watchCmd = &cobra.Command{
 	Use:                "watch",
-	Short:              "Decrypt the value server-side and prints the response",
+	Short:              "Runs watcher that periodically check the provided repository and updates K8s configmap accordingly",
 	DisableFlagParsing: true,
 	PreRunE:            cmd.ExpandArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
