@@ -9,6 +9,7 @@ import (
 func main() {
 
 	if err := cmd.Execute(); err != nil {
+		log.Errorf("Command failed: %v", err)
 		os.Exit(-1)
 	}
 
