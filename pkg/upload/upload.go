@@ -226,7 +226,7 @@ func (u *configmapUploader) iterToConfigMapData(iter *object.FileIter) (map[stri
 	return data, err
 }
 
-// NewConfigMapUploader creates new SecretUploader
+// NewSecretUploader creates new SecretUploader
 func NewSecretUploader(o *UploaderOptions) (Uploader, error) {
 	restconfig, err := restConfig(o.Kubeconfig)
 	if err != nil {
