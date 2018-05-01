@@ -44,7 +44,7 @@ func executeLoad() error {
 
 	fetcher := fetch.NewFetcher(lp.git, lp.folder, lp.branch, auth)
 
-	uploader, err := upload.NewUploader(&upload.UploaderOptions{
+	uploader, err := upload.NewConfigMapUploader(&upload.UploaderOptions{
 		Kubeconfig:    lp.kubeconfig,
 		ConfigMapName: lp.mapname,
 		Namespace:     lp.namespace,

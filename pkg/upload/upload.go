@@ -16,6 +16,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"regexp"
 	"strings"
+	"encoding/base64"
 )
 
 const refAnnotation = "git2kube.github.com/ref"
@@ -48,6 +49,9 @@ type uploader struct {
 	excludes    []*regexp.Regexp
 }
 
+type configmapUploader uploader
+type secretUploader uploader
+
 // UploaderOptions uploader options
 type UploaderOptions struct {
 	Kubeconfig    bool
@@ -60,8 +64,8 @@ type UploaderOptions struct {
 	Annotations   []string
 }
 
-// NewUploader creates new Uploader
-func NewUploader(o *UploaderOptions) (Uploader, error) {
+// NewConfigMapUploader creates new ConfigMapUploader
+func NewConfigMapUploader(o *UploaderOptions) (Uploader, error) {
 	restconfig, err := restConfig(o.Kubeconfig)
 	if err != nil {
 		return nil, err
@@ -94,7 +98,7 @@ func NewUploader(o *UploaderOptions) (Uploader, error) {
 		return nil, err
 	}
 
-	return &uploader{
+	return &configmapUploader{
 		mergeType:   o.MergeType,
 		includes:    includesRegex,
 		excludes:    excludesRegex,
@@ -107,10 +111,10 @@ func NewUploader(o *UploaderOptions) (Uploader, error) {
 	}, nil
 }
 
-func (u *uploader) Upload(commitID string, iter *object.FileIter) error {
+func (u *configmapUploader) Upload(commitID string, iter *object.FileIter) error {
 	configMaps := u.clientset.CoreV1().ConfigMaps(u.namespace)
 
-	data, err := u.iterToData(iter)
+	data, err := u.iterToConfigMapData(iter)
 	if err != nil {
 		return err
 	}
@@ -131,7 +135,7 @@ func (u *uploader) Upload(commitID string, iter *object.FileIter) error {
 	return nil
 }
 
-func (u *uploader) patchConfigMap(oldMap *corev1.ConfigMap, configMaps typedcore.ConfigMapInterface, data map[string]string, commitID string) error {
+func (u *configmapUploader) patchConfigMap(oldMap *corev1.ConfigMap, configMaps typedcore.ConfigMapInterface, data map[string]string, commitID string) error {
 	log.Infof("Patching ConfigMap '%s.%s'", oldMap.Namespace, oldMap.Name)
 	newMap := oldMap.DeepCopy()
 
@@ -183,7 +187,7 @@ func (u *uploader) patchConfigMap(oldMap *corev1.ConfigMap, configMaps typedcore
 	return nil
 }
 
-func (u *uploader) createConfigMap(configMaps typedcore.ConfigMapInterface, data map[string]string, commitID string) error {
+func (u *configmapUploader) createConfigMap(configMaps typedcore.ConfigMapInterface, data map[string]string, commitID string) error {
 	log.Infof("Creating ConfigMap '%s.%s'", u.namespace, u.name)
 
 	annotations := u.annotations
@@ -206,10 +210,10 @@ func (u *uploader) createConfigMap(configMaps typedcore.ConfigMapInterface, data
 	return nil
 }
 
-func (u *uploader) iterToData(iter *object.FileIter) (map[string]string, error) {
+func (u *configmapUploader) iterToConfigMapData(iter *object.FileIter) (map[string]string, error) {
 	var data = make(map[string]string)
 	err := iter.ForEach(func(file *object.File) error {
-		if u.filterFile(file) {
+		if filterFile(file, u.includes, u.excludes) {
 			content, err := file.Contents()
 			if err != nil {
 				return err
@@ -222,16 +226,182 @@ func (u *uploader) iterToData(iter *object.FileIter) (map[string]string, error) 
 	return data, err
 }
 
-func (u *uploader) filterFile(file *object.File) bool {
+// NewConfigMapUploader creates new SecretUploader
+func NewSecretUploader(o *UploaderOptions) (Uploader, error) {
+	restconfig, err := restConfig(o.Kubeconfig)
+	if err != nil {
+		return nil, err
+	}
+
+	clientset, err := kubernetes.NewForConfig(restconfig)
+	if err != nil {
+		return nil, err
+	}
+
+	includesRegex, err := stringsToRegExp(o.Includes)
+	if err != nil {
+		return nil, err
+	}
+	log.Infof("Loaded include rules %s", includesRegex)
+
+	excludesRegex, err := stringsToRegExp(o.Excludes)
+	if err != nil {
+		return nil, err
+	}
+	log.Infof("Loaded exclude rules %s", excludesRegex)
+
+	labelsParsed, err := stringsToMap(o.Labels)
+	if err != nil {
+		return nil, err
+	}
+
+	annotationsParsed, err := stringsToMap(o.Annotations)
+	if err != nil {
+		return nil, err
+	}
+
+	return &configmapUploader{
+		mergeType:   o.MergeType,
+		includes:    includesRegex,
+		excludes:    excludesRegex,
+		labels:      labelsParsed,
+		annotations: annotationsParsed,
+		restconfig:  restconfig,
+		clientset:   clientset,
+		namespace:   o.Namespace,
+		name:        o.ConfigMapName,
+	}, nil
+}
+
+func (u *secretUploader) Upload(commitID string, iter *object.FileIter) error {
+	secrets := u.clientset.CoreV1().Secrets(u.namespace)
+
+	data, err := u.iterToSecretData(iter)
+	if err != nil {
+		return err
+	}
+
+	oldSecret, err := secrets.Get(u.name, metav1.GetOptions{})
+	if err == nil {
+		err = u.patchSecret(oldSecret, secrets, data, commitID)
+		if err != nil {
+			return err
+		}
+	} else {
+		err = u.createSecret(secrets, data, commitID)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (u *secretUploader) patchSecret(oldSecret *corev1.Secret, secrets typedcore.SecretInterface, data map[string][]byte, commitID string) error {
+	log.Infof("Patching Secret '%s.%s'", oldSecret.Namespace, oldSecret.Name)
+	newSecret := oldSecret.DeepCopy()
+
+	switch u.mergeType {
+	case Delete:
+		newSecret.Data = data
+	case Upsert:
+		if err := mergo.Merge(&newSecret.Data, data, mergo.WithOverride); err != nil {
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	if err := mergo.Merge(&newSecret.Annotations, u.annotations, mergo.WithOverride); err != nil {
+		if err != nil {
+			return err
+		}
+	}
+	newSecret.Annotations[refAnnotation] = commitID
+
+	if err := mergo.Merge(&newSecret.Labels, u.labels, mergo.WithOverride); err != nil {
+		if err != nil {
+			return err
+		}
+	}
+
+	oldData, err := json.Marshal(oldSecret)
+	if err != nil {
+		return err
+	}
+
+	newData, err := json.Marshal(newSecret)
+	if err != nil {
+		return err
+	}
+
+	patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldData, newData, corev1.ConfigMap{})
+	if err != nil {
+		return err
+	}
+
+	_, err = secrets.Patch(u.name, types.StrategicMergePatchType, patchBytes)
+	if err != nil {
+		return err
+	}
+
+	log.Infof("Successfully patched ConfigMap '%s.%s'", oldSecret.Namespace, oldSecret.Name)
+	return nil
+}
+
+func (u *secretUploader) createSecret(secrets typedcore.SecretInterface, data map[string][]byte, commitID string) error {
+	log.Infof("Creating ConfigMap '%s.%s'", u.namespace, u.name)
+
+	annotations := u.annotations
+	annotations[refAnnotation] = commitID
+
+	_, err := secrets.Create(&corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        u.name,
+			Namespace:   u.namespace,
+			Annotations: annotations,
+			Labels:      u.labels,
+		},
+		Data: data,
+	})
+	if err != nil {
+		return err
+	}
+
+	log.Infof("Successfully created ConfigMap '%s.%s'", u.namespace, u.name)
+	return nil
+}
+
+func (u *secretUploader) iterToSecretData(iter *object.FileIter) (map[string][]byte, error) {
+	var data = make(map[string][]byte)
+	err := iter.ForEach(func(file *object.File) error {
+		if filterFile(file, u.includes, u.excludes) {
+			content, err := file.Contents()
+			if err != nil {
+				return err
+			}
+			src := []byte(content)
+			buf := make([]byte, base64.StdEncoding.EncodedLen(len(src)))
+			base64.StdEncoding.Encode(buf, src)
+
+			data[strings.Replace(file.Name, "/", ".", -1)] = buf
+		}
+		return nil
+	})
+
+	return data, err
+}
+
+func filterFile(file *object.File, includes []*regexp.Regexp, excludes []*regexp.Regexp) bool {
 	pass := false
-	for _, inc := range u.includes {
+	for _, inc := range includes {
 		if inc.MatchString(file.Name) {
 			pass = true
 			break
 		}
 	}
 
-	for _, exc := range u.excludes {
+	for _, exc := range excludes {
 		if exc.MatchString(file.Name) {
 			pass = false
 			break
