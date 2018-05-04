@@ -45,8 +45,6 @@ func (f *fetcher) Fetch() (*object.Commit, error) {
 		r, err = git.PlainClone(f.directory, false, &git.CloneOptions{
 			URL:           f.url,
 			Auth:          f.auth,
-			Depth:         1,
-			SingleBranch:  true,
 			ReferenceName: plumbing.ReferenceName(fmt.Sprintf("refs/heads/%s", f.branch)),
 		})
 		if err != nil {
@@ -63,7 +61,6 @@ func (f *fetcher) Fetch() (*object.Commit, error) {
 		r, err = git.PlainClone(f.directory, false, &git.CloneOptions{
 			URL:           f.url,
 			Auth:          f.auth,
-			Depth:         1,
 			ReferenceName: plumbing.ReferenceName(fmt.Sprintf("refs/heads/%s", f.branch)),
 		})
 		if err != nil {
@@ -75,7 +72,6 @@ func (f *fetcher) Fetch() (*object.Commit, error) {
 	log.Info("Fetching changes")
 	err = r.Fetch(&git.FetchOptions{
 		Auth:  f.auth,
-		Depth: 1,
 	})
 	if err != nil && err != git.NoErrAlreadyUpToDate {
 		log.Errorf("Failed to fetch remote changes: %v", err)
