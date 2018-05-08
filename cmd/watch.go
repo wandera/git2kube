@@ -51,14 +51,14 @@ func executeWatch() error {
 	fetcher := fetch.NewFetcher(wp.git, wp.folder, wp.branch, auth)
 
 	uploader, err := upload.NewConfigMapUploader(&upload.UploaderOptions{
-		Kubeconfig:    wp.kubeconfig,
-		ConfigMapName: wp.mapname,
-		Namespace:     wp.namespace,
-		MergeType:     upload.MergeType(wp.mergetype),
-		Includes:      wp.includes,
-		Excludes:      wp.excludes,
-		Annotations:   wp.annotations,
-		Labels:        wp.labels,
+		Kubeconfig:  wp.kubeconfig,
+		Target:      wp.mapname,
+		Namespace:   wp.namespace,
+		MergeType:   upload.MergeType(wp.mergetype),
+		Includes:    wp.includes,
+		Excludes:    wp.excludes,
+		Annotations: wp.annotations,
+		Labels:      wp.labels,
 	})
 	if err != nil {
 		return err

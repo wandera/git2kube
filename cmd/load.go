@@ -8,12 +8,20 @@ import (
 	"os"
 )
 
+type LoadType int
+
+const (
+	ConfigMap LoadType = iota
+	Secret
+	Folder
+)
+
 var lp = struct {
 	kubeconfig  bool
 	git         string
 	branch      string
 	folder      string
-	mapname     string
+	target      string
 	namespace   string
 	mergetype   string
 	verbose     bool
@@ -24,15 +32,36 @@ var lp = struct {
 }{}
 
 var loadCmd = &cobra.Command{
-	Use:     "load",
-	Short:   "Loads files from git repository into ConfigMap",
-	PreRunE: cmd.ExpandArgs,
+	Use:               "load",
+	Short:             "Loads files from git repository into target",
+	PersistentPreRunE: cmd.ExpandArgs,
+}
+
+var loadConfigmapCmd = &cobra.Command{
+	Use:   "configmap",
+	Short: "Loads files from git repository into ConfigMap",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return executeLoad()
+		return executeLoad(ConfigMap)
 	},
 }
 
-func executeLoad() error {
+var loadSecretCmd = &cobra.Command{
+	Use:   "secret",
+	Short: "Loads files from git repository into Secret",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return executeLoad(Secret)
+	},
+}
+
+var loadFolderCmd = &cobra.Command{
+	Use:   "folder",
+	Short: "Loads files from git repository into Folder",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return executeLoad(Folder)
+	},
+}
+
+func executeLoad(lt LoadType) error {
 	if err := os.MkdirAll(lp.folder, 755); err != nil {
 		return err
 	}
@@ -44,20 +73,6 @@ func executeLoad() error {
 
 	fetcher := fetch.NewFetcher(lp.git, lp.folder, lp.branch, auth)
 
-	uploader, err := upload.NewConfigMapUploader(&upload.UploaderOptions{
-		Kubeconfig:    lp.kubeconfig,
-		ConfigMapName: lp.mapname,
-		Namespace:     lp.namespace,
-		MergeType:     upload.MergeType(lp.mergetype),
-		Includes:      lp.includes,
-		Excludes:      lp.excludes,
-		Annotations:   lp.annotations,
-		Labels:        lp.labels,
-	})
-	if err != nil {
-		return err
-	}
-
 	c, err := fetcher.Fetch()
 	if err != nil {
 		return err
@@ -68,7 +83,52 @@ func executeLoad() error {
 		return err
 	}
 
-	err = uploader.Upload(c.ID().String(), iter)
+	var up upload.Uploader = nil
+
+	switch lt {
+	case ConfigMap:
+		uploader, err := upload.NewConfigMapUploader(&upload.UploaderOptions{
+			Kubeconfig:  lp.kubeconfig,
+			Target:      lp.target,
+			Namespace:   lp.namespace,
+			MergeType:   upload.MergeType(lp.mergetype),
+			Includes:    lp.includes,
+			Excludes:    lp.excludes,
+			Annotations: lp.annotations,
+			Labels:      lp.labels,
+		})
+		if err != nil {
+			return err
+		}
+		up = uploader
+	case Secret:
+		uploader, err := upload.NewSecretUploader(&upload.UploaderOptions{
+			Kubeconfig:  lp.kubeconfig,
+			Target:      lp.target,
+			Namespace:   lp.namespace,
+			MergeType:   upload.MergeType(lp.mergetype),
+			Includes:    lp.includes,
+			Excludes:    lp.excludes,
+			Annotations: lp.annotations,
+			Labels:      lp.labels,
+		})
+		if err != nil {
+			return err
+		}
+		up = uploader
+	case Folder:
+		uploader, err := upload.NewFolderUploader(&upload.UploaderOptions{
+			Target:   lp.target,
+			Includes: lp.includes,
+			Excludes: lp.excludes,
+		})
+		if err != nil {
+			return err
+		}
+		up = uploader
+	}
+
+	err = up.Upload(c.ID().String(), iter)
 	if err != nil {
 		return err
 	}
@@ -77,20 +137,36 @@ func executeLoad() error {
 }
 
 func init() {
-	loadCmd.Flags().BoolVarP(&lp.verbose, "verbose", "v", false, "verbose output")
-	loadCmd.Flags().BoolVarP(&lp.kubeconfig, "kubeconfig", "k", false, "true if locally stored ~/.kube/config should be used, InCluster config will be used if false (options: true|false) (default: false)")
-	loadCmd.Flags().StringVarP(&lp.mergetype, "merge-type", "", "delete", "how to merge ConfigMap data whether to also delete missing values or just upsert new (options: delete|upsert)")
-	loadCmd.Flags().StringVarP(&lp.git, "git", "g", "", "git repository address, either http(s) or ssh protocol has to be specified")
-	loadCmd.Flags().StringVarP(&lp.branch, "branch", "b", "master", "branch name to pull")
-	loadCmd.Flags().StringVarP(&lp.folder, "cache-folder", "c", "/tmp/git2kube/data/", "destination on filesystem where cache of repository will be stored")
-	loadCmd.Flags().StringVarP(&lp.namespace, "namespace", "n", "default", "target namespace for the resulting ConfigMap")
-	loadCmd.Flags().StringVarP(&lp.mapname, "configmap", "m", "", "name for the resulting ConfigMap")
-	loadCmd.Flags().StringSliceVar(&lp.includes, "include", []string{".*"}, "regex that if is a match includes the file in the upload, example: '*.yaml' or 'folder/*' if you want to match a folder")
-	loadCmd.Flags().StringSliceVar(&lp.excludes, "exclude", []string{"^\\..*"}, "regex that if is a match excludes the file from the upload, example: '*.yaml' or 'folder/*' if you want to match a folder")
-	loadCmd.Flags().StringSliceVar(&lp.labels, "label", []string{}, "label to add to K8s ConfigMap (format NAME=VALUE)")
-	loadCmd.Flags().StringSliceVar(&lp.annotations, "annotation", []string{}, "annotation to add to K8s ConfigMap (format NAME=VALUE)")
+	loadCmd.PersistentFlags().BoolVarP(&lp.verbose, "verbose", "v", false, "verbose output")
+	loadCmd.PersistentFlags().StringVarP(&lp.git, "git", "g", "", "git repository address, either http(s) or ssh protocol has to be specified")
+	loadCmd.PersistentFlags().StringVarP(&lp.branch, "branch", "b", "master", "branch name to pull")
+	loadCmd.PersistentFlags().StringVarP(&lp.folder, "cache-folder", "c", "/tmp/git2kube/data/", "destination on filesystem where cache of repository will be stored")
+	loadCmd.PersistentFlags().StringSliceVar(&lp.includes, "include", []string{".*"}, "regex that if is a match includes the file in the upload, example: '*.yaml' or 'folder/*' if you want to match a folder")
+	loadCmd.PersistentFlags().StringSliceVar(&lp.excludes, "exclude", []string{"^\\..*"}, "regex that if is a match excludes the file from the upload, example: '*.yaml' or 'folder/*' if you want to match a folder")
+	loadCmd.MarkPersistentFlagRequired("git")
 
-	loadCmd.MarkFlagFilename("kubeconfig")
-	loadCmd.MarkFlagRequired("git")
-	loadCmd.MarkFlagRequired("configmap")
+	loadConfigmapCmd.Flags().BoolVarP(&lp.kubeconfig, "kubeconfig", "k", false, "true if locally stored ~/.kube/config should be used, InCluster config will be used if false (options: true|false) (default: false)")
+	loadConfigmapCmd.Flags().StringVarP(&lp.namespace, "namespace", "n", "default", "target namespace for the resulting ConfigMap")
+	loadConfigmapCmd.Flags().StringVarP(&lp.target, "configmap", "m", "", "name for the resulting ConfigMap")
+	loadConfigmapCmd.Flags().StringSliceVar(&lp.labels, "label", []string{}, "label to add to K8s ConfigMap (format NAME=VALUE)")
+	loadConfigmapCmd.Flags().StringSliceVar(&lp.annotations, "annotation", []string{}, "annotation to add to K8s ConfigMap (format NAME=VALUE)")
+	loadConfigmapCmd.Flags().StringVarP(&lp.mergetype, "merge-type", "", "delete", "how to merge ConfigMap data whether to also delete missing values or just upsert new (options: delete|upsert)")
+	loadConfigmapCmd.MarkFlagFilename("kubeconfig")
+	loadConfigmapCmd.MarkFlagRequired("configmap")
+
+	loadSecretCmd.Flags().BoolVarP(&lp.kubeconfig, "kubeconfig", "k", false, "true if locally stored ~/.kube/config should be used, InCluster config will be used if false (options: true|false) (default: false)")
+	loadSecretCmd.Flags().StringVarP(&lp.namespace, "namespace", "n", "default", "target namespace for the resulting ConfigMap")
+	loadSecretCmd.Flags().StringVarP(&lp.target, "secret", "s", "", "name for the resulting Secret")
+	loadSecretCmd.Flags().StringSliceVar(&lp.labels, "label", []string{}, "label to add to K8s Secret (format NAME=VALUE)")
+	loadSecretCmd.Flags().StringSliceVar(&lp.annotations, "annotation", []string{}, "annotation to add to K8s Secret (format NAME=VALUE)")
+	loadSecretCmd.Flags().StringVarP(&lp.mergetype, "merge-type", "", "delete", "how to merge Secret data whether to also delete missing values or just upsert new (options: delete|upsert)")
+	loadSecretCmd.MarkFlagFilename("kubeconfig")
+	loadSecretCmd.MarkFlagRequired("secret")
+
+	loadFolderCmd.Flags().StringVarP(&lp.target, "target-folder", "t", "", "path to target folder")
+	loadFolderCmd.MarkFlagRequired("target-folder")
+
+	loadCmd.AddCommand(loadConfigmapCmd)
+	loadCmd.AddCommand(loadSecretCmd)
+	loadCmd.AddCommand(loadFolderCmd)
 }
