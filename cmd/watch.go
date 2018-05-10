@@ -35,8 +35,8 @@ var watchCmd = &cobra.Command{
 }
 
 var watchConfigmapCmd = &cobra.Command{
-	Use:   "configmap",
-	Short: "Runs watcher that periodically check the provided repository and updates K8s ConfigMap accordingly",
+	Use:                "configmap",
+	Short:              "Runs watcher that periodically check the provided repository and updates K8s ConfigMap accordingly",
 	DisableFlagParsing: true,
 	RunE: func(c *cobra.Command, args []string) error {
 		return executeWatch(cmd.ConfigMap)
@@ -44,8 +44,8 @@ var watchConfigmapCmd = &cobra.Command{
 }
 
 var watchSecretCmd = &cobra.Command{
-	Use:   "secret",
-	Short: "Runs watcher that periodically check the provided repository and updates K8s Secret accordingly",
+	Use:                "secret",
+	Short:              "Runs watcher that periodically check the provided repository and updates K8s Secret accordingly",
 	DisableFlagParsing: true,
 	RunE: func(c *cobra.Command, args []string) error {
 		return executeWatch(cmd.Secret)
@@ -53,8 +53,8 @@ var watchSecretCmd = &cobra.Command{
 }
 
 var watchFolderCmd = &cobra.Command{
-	Use:   "folder",
-	Short: "Runs watcher that periodically check the provided repository and updates target folder accordingly",
+	Use:                "folder",
+	Short:              "Runs watcher that periodically check the provided repository and updates target folder accordingly",
 	DisableFlagParsing: true,
 	RunE: func(c *cobra.Command, args []string) error {
 		return executeWatch(cmd.Folder)
@@ -117,6 +117,13 @@ func executeWatch(lt cmd.LoadType) error {
 		}
 		up = uploader
 	}
+
+	err = refresh(fetcher, up)
+	if err != nil {
+		log.Errorf("Initial sync failed: %v", err)
+		return err
+	}
+	log.Info("Initial sync succeeded")
 
 	ticker := time.NewTicker(time.Duration(wp.interval) * time.Second)
 	stop := make(chan struct{})
