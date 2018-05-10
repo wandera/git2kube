@@ -8,7 +8,6 @@ import (
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport/http"
-	"os"
 	"strings"
 )
 
@@ -53,20 +52,6 @@ func (f *fetcher) Fetch() (*object.Commit, error) {
 		}
 	} else {
 		log.Infof("Repository found in '%s' opening...", f.directory)
-	}
-
-	if branch, err := r.Branch(f.branch); branch == nil || err != nil {
-		log.Infof("Branch switched to '%s'", f.branch)
-		os.RemoveAll(f.directory)
-		r, err = git.PlainClone(f.directory, false, &git.CloneOptions{
-			URL:           f.url,
-			Auth:          f.auth,
-			ReferenceName: plumbing.ReferenceName(fmt.Sprintf("refs/heads/%s", f.branch)),
-		})
-		if err != nil {
-			log.Errorf("Failed to switch branch to '%s': %v", f.branch, err)
-			return nil, err
-		}
 	}
 
 	log.Info("Fetching changes")
