@@ -23,30 +23,34 @@ var lp = struct {
 }{}
 
 var loadCmd = &cobra.Command{
-	Use:               "load",
-	Short:             "Loads files from git repository into target",
-	PersistentPreRunE: cmd.ExpandArgs,
+	Use:                "load",
+	Short:              "Loads files from git repository into target",
+	DisableFlagParsing: true,
+	PersistentPreRunE:  cmd.ExpandArgs,
 }
 
 var loadConfigmapCmd = &cobra.Command{
-	Use:   "configmap",
-	Short: "Loads files from git repository into ConfigMap",
+	Use:                "configmap",
+	Short:              "Loads files from git repository into ConfigMap",
+	DisableFlagParsing: true,
 	RunE: func(c *cobra.Command, args []string) error {
 		return executeLoad(cmd.ConfigMap)
 	},
 }
 
 var loadSecretCmd = &cobra.Command{
-	Use:   "secret",
-	Short: "Loads files from git repository into Secret",
+	Use:                "secret",
+	Short:              "Loads files from git repository into Secret",
+	DisableFlagParsing: true,
 	RunE: func(c *cobra.Command, args []string) error {
 		return executeLoad(cmd.Secret)
 	},
 }
 
 var loadFolderCmd = &cobra.Command{
-	Use:   "folder",
-	Short: "Loads files from git repository into Folder",
+	Use:                "folder",
+	Short:              "Loads files from git repository into Folder",
+	DisableFlagParsing: true,
 	RunE: func(c *cobra.Command, args []string) error {
 		return executeLoad(cmd.Folder)
 	},
