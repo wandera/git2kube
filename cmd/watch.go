@@ -17,10 +17,9 @@ var wp = struct {
 	git         string
 	branch      string
 	folder      string
-	mapname     string
+	target      string
 	namespace   string
 	mergetype   string
-	verbose     bool
 	interval    int
 	includes    []string
 	excludes    []string
@@ -30,16 +29,37 @@ var wp = struct {
 
 var watchCmd = &cobra.Command{
 	Use:                "watch",
-	Short:              "Runs watcher that periodically check the provided repository and updates K8s configmap accordingly",
+	Short:              "Runs watcher that periodically check the provided repository",
 	DisableFlagParsing: true,
-	PreRunE:            cmd.ExpandArgs,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return executeWatch()
+	PersistentPreRunE:  cmd.ExpandArgs,
+}
+
+var watchConfigmapCmd = &cobra.Command{
+	Use:   "configmap",
+	Short: "Runs watcher that periodically check the provided repository and updates K8s ConfigMap accordingly",
+	RunE: func(c *cobra.Command, args []string) error {
+		return executeWatch(cmd.ConfigMap)
 	},
 }
 
-func executeWatch() error {
-	if err := os.MkdirAll(wp.folder, 755); err != nil {
+var watchSecretCmd = &cobra.Command{
+	Use:   "secret",
+	Short: "Runs watcher that periodically check the provided repository and updates K8s Secret accordingly",
+	RunE: func(c *cobra.Command, args []string) error {
+		return executeWatch(cmd.Secret)
+	},
+}
+
+var watchFolderCmd = &cobra.Command{
+	Use:   "folder",
+	Short: "Runs watcher that periodically check the provided repository and updates target folder accordingly",
+	RunE: func(c *cobra.Command, args []string) error {
+		return executeWatch(cmd.Folder)
+	},
+}
+
+func executeWatch(lt cmd.LoadType) error {
+	if err := os.MkdirAll(wp.folder, os.ModePerm); err != nil {
 		return err
 	}
 
@@ -50,18 +70,49 @@ func executeWatch() error {
 
 	fetcher := fetch.NewFetcher(wp.git, wp.folder, wp.branch, auth)
 
-	uploader, err := upload.NewConfigMapUploader(&upload.UploaderOptions{
-		Kubeconfig:  wp.kubeconfig,
-		Target:      wp.mapname,
-		Namespace:   wp.namespace,
-		MergeType:   upload.MergeType(wp.mergetype),
-		Includes:    wp.includes,
-		Excludes:    wp.excludes,
-		Annotations: wp.annotations,
-		Labels:      wp.labels,
-	})
-	if err != nil {
-		return err
+	var up upload.Uploader
+	switch lt {
+	case cmd.ConfigMap:
+		uploader, err := upload.NewConfigMapUploader(&upload.UploaderOptions{
+			Kubeconfig:  wp.kubeconfig,
+			Target:      wp.target,
+			Namespace:   wp.namespace,
+			MergeType:   upload.MergeType(wp.mergetype),
+			Includes:    wp.includes,
+			Excludes:    wp.excludes,
+			Annotations: wp.annotations,
+			Labels:      wp.labels,
+		})
+		if err != nil {
+			return err
+		}
+		up = uploader
+	case cmd.Secret:
+		uploader, err := upload.NewSecretUploader(&upload.UploaderOptions{
+			Kubeconfig:  wp.kubeconfig,
+			Target:      wp.target,
+			Namespace:   wp.namespace,
+			MergeType:   upload.MergeType(wp.mergetype),
+			Includes:    wp.includes,
+			Excludes:    wp.excludes,
+			Annotations: wp.annotations,
+			Labels:      wp.labels,
+		})
+		if err != nil {
+			return err
+		}
+		up = uploader
+	case cmd.Folder:
+		uploader, err := upload.NewFolderUploader(&upload.UploaderOptions{
+			Source:   wp.folder,
+			Target:   wp.target,
+			Includes: wp.includes,
+			Excludes: wp.excludes,
+		})
+		if err != nil {
+			return err
+		}
+		up = uploader
 	}
 
 	ticker := time.NewTicker(time.Duration(wp.interval) * time.Second)
@@ -71,7 +122,7 @@ func executeWatch() error {
 		for {
 			select {
 			case <-ticker.C:
-				err := refresh(fetcher, uploader)
+				err := refresh(fetcher, up)
 				if err != nil {
 					log.Warn(err)
 				}
@@ -113,21 +164,36 @@ func refresh(fetcher fetch.Fetcher, uploader upload.Uploader) error {
 }
 
 func init() {
-	watchCmd.Flags().IntVarP(&wp.interval, "interval", "i", 10, "interval in seconds in which to try refreshing ConfigMap from git")
-	watchCmd.Flags().StringVarP(&wp.mergetype, "merge-type", "", "delete", "how to merge ConfigMap data whether to also delete missing values or just upsert new (options: delete|upsert)")
-	watchCmd.Flags().BoolVarP(&wp.verbose, "verbose", "v", false, "verbose output")
-	watchCmd.Flags().BoolVarP(&wp.kubeconfig, "kubeconfig", "k", false, "true if locally stored ~/.kube/config should be used, InCluster config will be used if false (options: true|false) (default: false)")
-	watchCmd.Flags().StringVarP(&wp.git, "git", "g", "", "git repository address, either http(s) or ssh protocol has to be specified")
-	watchCmd.Flags().StringVarP(&wp.branch, "branch", "b", "master", "branch name to pull")
-	watchCmd.Flags().StringVarP(&wp.folder, "cache-folder", "c", "/tmp/git2kube/data/", "destination on filesystem where cache of repository will be stored")
-	watchCmd.Flags().StringVarP(&wp.namespace, "namespace", "n", "default", "target namespace for the resulting ConfigMap")
-	watchCmd.Flags().StringVarP(&wp.mapname, "configmap", "m", "", "name for the resulting ConfigMap")
-	watchCmd.Flags().StringSliceVar(&wp.includes, "include", []string{".*"}, "regex that if is a match includes the file in the upload, example: '*.yaml' or 'folder/*' if you want to match a folder")
-	watchCmd.Flags().StringSliceVar(&wp.excludes, "exclude", []string{"^\\..*"}, "regex that if is a match excludes the file from the upload, example: '*.yaml' or 'folder/*' if you want to match a folder")
-	watchCmd.Flags().StringSliceVar(&wp.labels, "label", []string{}, "label to add to K8s ConfigMap (format NAME=VALUE)")
-	watchCmd.Flags().StringSliceVar(&wp.annotations, "annotation", []string{}, "annotation to add to K8s ConfigMap (format NAME=VALUE)")
+	watchCmd.PersistentFlags().IntVarP(&wp.interval, "interval", "i", 10, "interval in seconds in which to try refreshing ConfigMap from git")
+	watchCmd.PersistentFlags().StringVarP(&wp.git, "git", "g", "", "git repository address, either http(s) or ssh protocol has to be specified")
+	watchCmd.PersistentFlags().StringVarP(&wp.branch, "branch", "b", "master", "branch name to pull")
+	watchCmd.PersistentFlags().StringVarP(&wp.folder, "cache-folder", "c", "/tmp/git2kube/data/", "destination on filesystem where cache of repository will be stored")
+	watchCmd.PersistentFlags().StringSliceVar(&wp.includes, "include", []string{".*"}, "regex that if is a match includes the file in the upload, example: '*.yaml' or 'folder/*' if you want to match a folder")
+	watchCmd.PersistentFlags().StringSliceVar(&wp.excludes, "exclude", []string{"^\\..*"}, "regex that if is a match excludes the file from the upload, example: '*.yaml' or 'folder/*' if you want to match a folder")
+	watchCmd.MarkPersistentFlagRequired("git")
 
-	watchCmd.MarkFlagFilename("kubeconfig")
-	watchCmd.MarkFlagRequired("git")
-	watchCmd.MarkFlagRequired("configmap")
+	watchConfigmapCmd.Flags().BoolVarP(&wp.kubeconfig, "kubeconfig", "k", false, "true if locally stored ~/.kube/config should be used, InCluster config will be used if false (options: true|false) (default: false)")
+	watchConfigmapCmd.Flags().StringVarP(&wp.namespace, "namespace", "n", "default", "target namespace for the resulting ConfigMap")
+	watchConfigmapCmd.Flags().StringVarP(&wp.target, "configmap", "m", "", "name for the resulting ConfigMap")
+	watchConfigmapCmd.Flags().StringSliceVar(&wp.labels, "label", []string{}, "label to add to K8s ConfigMap (format NAME=VALUE)")
+	watchConfigmapCmd.Flags().StringSliceVar(&wp.annotations, "annotation", []string{}, "annotation to add to K8s ConfigMap (format NAME=VALUE)")
+	watchConfigmapCmd.Flags().StringVarP(&wp.mergetype, "merge-type", "", "delete", "how to merge ConfigMap data whether to also delete missing values or just upsert new (options: delete|upsert)")
+	watchConfigmapCmd.MarkFlagFilename("kubeconfig")
+	watchConfigmapCmd.MarkFlagRequired("configmap")
+
+	watchSecretCmd.Flags().BoolVarP(&wp.kubeconfig, "kubeconfig", "k", false, "true if locally stored ~/.kube/config should be used, InCluster config will be used if false (options: true|false) (default: false)")
+	watchSecretCmd.Flags().StringVarP(&wp.namespace, "namespace", "n", "default", "target namespace for the resulting ConfigMap")
+	watchSecretCmd.Flags().StringVarP(&wp.target, "secret", "s", "", "name for the resulting Secret")
+	watchSecretCmd.Flags().StringSliceVar(&wp.labels, "label", []string{}, "label to add to K8s Secret (format NAME=VALUE)")
+	watchSecretCmd.Flags().StringSliceVar(&wp.annotations, "annotation", []string{}, "annotation to add to K8s Secret (format NAME=VALUE)")
+	watchSecretCmd.Flags().StringVarP(&wp.mergetype, "merge-type", "", "delete", "how to merge Secret data whether to also delete missing values or just upsert new (options: delete|upsert)")
+	watchSecretCmd.MarkFlagFilename("kubeconfig")
+	watchSecretCmd.MarkFlagRequired("secret")
+
+	watchFolderCmd.Flags().StringVarP(&wp.target, "target-folder", "t", "", "path to target folder")
+	watchFolderCmd.MarkFlagRequired("target-folder")
+
+	watchCmd.AddCommand(watchConfigmapCmd)
+	watchCmd.AddCommand(watchSecretCmd)
+	watchCmd.AddCommand(watchFolderCmd)
 }
