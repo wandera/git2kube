@@ -1,35 +1,33 @@
 ## git2kube watch
 
-Runs watcher that periodically check the provided repository and updates K8s configmap accordingly
+Runs watcher that periodically check the provided repository
 
 ### Synopsis
 
-Runs watcher that periodically check the provided repository and updates K8s configmap accordingly
-
-```
-git2kube watch [flags]
-```
+Runs watcher that periodically check the provided repository
 
 ### Options
 
 ```
-      --annotation strings    annotation to add to K8s ConfigMap (format NAME=VALUE)
   -b, --branch string         branch name to pull (default "master")
   -c, --cache-folder string   destination on filesystem where cache of repository will be stored (default "/tmp/git2kube/data/")
-  -m, --configmap string      name for the resulting ConfigMap
       --exclude strings       regex that if is a match excludes the file from the upload, example: '*.yaml' or 'folder/*' if you want to match a folder (default [^\..*])
   -g, --git string            git repository address, either http(s) or ssh protocol has to be specified
   -h, --help                  help for watch
       --include strings       regex that if is a match includes the file in the upload, example: '*.yaml' or 'folder/*' if you want to match a folder (default [.*])
   -i, --interval int          interval in seconds in which to try refreshing ConfigMap from git (default 10)
-  -k, --kubeconfig            true if locally stored ~/.kube/config should be used, InCluster config will be used if false (options: true|false) (default: false)
-      --label strings         label to add to K8s ConfigMap (format NAME=VALUE)
-      --merge-type string     how to merge ConfigMap data whether to also delete missing values or just upsert new (options: delete|upsert) (default "delete")
-  -n, --namespace string      target namespace for the resulting ConfigMap (default "default")
-  -v, --verbose               verbose output
+```
+
+### Options inherited from parent commands
+
+```
+  -l, --log-level string   command log level (options: [panic fatal error warning info debug]) (default "info")
 ```
 
 ### SEE ALSO
 
 * [git2kube](git2kube.md)	 - Git to ConfigMap conversion tool
+* [git2kube watch configmap](git2kube_watch_configmap.md)	 - Runs watcher that periodically check the provided repository and updates K8s ConfigMap accordingly
+* [git2kube watch folder](git2kube_watch_folder.md)	 - Runs watcher that periodically check the provided repository and updates target folder accordingly
+* [git2kube watch secret](git2kube_watch_secret.md)	 - Runs watcher that periodically check the provided repository and updates K8s Secret accordingly
 

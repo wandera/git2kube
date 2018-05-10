@@ -1,6 +1,7 @@
 package upload
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"github.com/imdario/mergo"
@@ -14,9 +15,11 @@ import (
 	typedcore "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"os"
+	"path"
+	"path/filepath"
 	"regexp"
 	"strings"
-	"encoding/base64"
 )
 
 const refAnnotation = "git2kube.github.com/ref"
@@ -31,7 +34,7 @@ const (
 	Upsert MergeType = "upsert"
 )
 
-// Uploader uploading date to K8s configmap
+// Uploader uploading data to target
 type Uploader interface {
 	// Upload files into config map tagged by commitID
 	Upload(commitID string, iter *object.FileIter) error
@@ -51,17 +54,24 @@ type uploader struct {
 
 type configmapUploader uploader
 type secretUploader uploader
+type folderUploader struct {
+	name       string
+	includes   []*regexp.Regexp
+	excludes   []*regexp.Regexp
+	sourcePath string
+}
 
 // UploaderOptions uploader options
 type UploaderOptions struct {
-	Kubeconfig    bool
-	ConfigMapName string
-	Namespace     string
-	MergeType     MergeType
-	Includes      []string
-	Excludes      []string
-	Labels        []string
-	Annotations   []string
+	Kubeconfig  bool
+	Source      string
+	Target      string
+	Namespace   string
+	MergeType   MergeType
+	Includes    []string
+	Excludes    []string
+	Labels      []string
+	Annotations []string
 }
 
 // NewConfigMapUploader creates new ConfigMapUploader
@@ -107,7 +117,7 @@ func NewConfigMapUploader(o *UploaderOptions) (Uploader, error) {
 		restconfig:  restconfig,
 		clientset:   clientset,
 		namespace:   o.Namespace,
-		name:        o.ConfigMapName,
+		name:        o.Target,
 	}, nil
 }
 
@@ -260,7 +270,7 @@ func NewSecretUploader(o *UploaderOptions) (Uploader, error) {
 		return nil, err
 	}
 
-	return &configmapUploader{
+	return &secretUploader{
 		mergeType:   o.MergeType,
 		includes:    includesRegex,
 		excludes:    excludesRegex,
@@ -269,7 +279,7 @@ func NewSecretUploader(o *UploaderOptions) (Uploader, error) {
 		restconfig:  restconfig,
 		clientset:   clientset,
 		namespace:   o.Namespace,
-		name:        o.ConfigMapName,
+		name:        o.Target,
 	}, nil
 }
 
@@ -390,6 +400,57 @@ func (u *secretUploader) iterToSecretData(iter *object.FileIter) (map[string][]b
 	})
 
 	return data, err
+}
+
+// NewFolderUploader creates new FolderUploader
+func NewFolderUploader(o *UploaderOptions) (Uploader, error) {
+	err := os.RemoveAll(o.Target)
+	if err != nil {
+		return nil, err
+	}
+	err = os.MkdirAll(o.Target, os.ModePerm)
+	if err != nil {
+		return nil, err
+	}
+	log.Infof("Created empty folder %s", o.Target)
+
+	includesRegex, err := stringsToRegExp(o.Includes)
+	if err != nil {
+		return nil, err
+	}
+	log.Infof("Loaded include rules %s", includesRegex)
+
+	excludesRegex, err := stringsToRegExp(o.Excludes)
+	if err != nil {
+		return nil, err
+	}
+	log.Infof("Loaded exclude rules %s", excludesRegex)
+
+	return &folderUploader{
+		includes:   includesRegex,
+		excludes:   excludesRegex,
+		name:       o.Target,
+		sourcePath: o.Source,
+	}, nil
+}
+
+func (u *folderUploader) Upload(commitID string, iter *object.FileIter) error {
+	err := iter.ForEach(func(file *object.File) error {
+		if filterFile(file, u.includes, u.excludes) {
+			src := path.Join(u.sourcePath, file.Name)
+			if _, err := os.Lstat(src); err == nil {
+				src, _ = filepath.Abs(src)
+			}
+			dest := path.Join(u.name, file.Name)
+			if _, err := os.Lstat(dest); err == nil {
+				os.Remove(dest)
+			}
+			return os.Symlink(src, dest)
+		}
+		return nil
+	})
+
+	return err
 }
 
 func filterFile(file *object.File, includes []*regexp.Regexp, excludes []*regexp.Regexp) bool {
