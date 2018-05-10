@@ -8,14 +8,6 @@ import (
 	"os"
 )
 
-type LoadType int
-
-const (
-	ConfigMap LoadType = iota
-	Secret
-	Folder
-)
-
 var lp = struct {
 	kubeconfig  bool
 	git         string
@@ -24,7 +16,6 @@ var lp = struct {
 	target      string
 	namespace   string
 	mergetype   string
-	verbose     bool
 	includes    []string
 	excludes    []string
 	labels      []string
@@ -40,29 +31,29 @@ var loadCmd = &cobra.Command{
 var loadConfigmapCmd = &cobra.Command{
 	Use:   "configmap",
 	Short: "Loads files from git repository into ConfigMap",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return executeLoad(ConfigMap)
+	RunE: func(c *cobra.Command, args []string) error {
+		return executeLoad(cmd.ConfigMap)
 	},
 }
 
 var loadSecretCmd = &cobra.Command{
 	Use:   "secret",
 	Short: "Loads files from git repository into Secret",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return executeLoad(Secret)
+	RunE: func(c *cobra.Command, args []string) error {
+		return executeLoad(cmd.Secret)
 	},
 }
 
 var loadFolderCmd = &cobra.Command{
 	Use:   "folder",
 	Short: "Loads files from git repository into Folder",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return executeLoad(Folder)
+	RunE: func(c *cobra.Command, args []string) error {
+		return executeLoad(cmd.Folder)
 	},
 }
 
-func executeLoad(lt LoadType) error {
-	if err := os.MkdirAll(lp.folder, 755); err != nil {
+func executeLoad(lt cmd.LoadType) error {
+	if err := os.MkdirAll(lp.folder, os.ModePerm); err != nil {
 		return err
 	}
 
@@ -83,10 +74,9 @@ func executeLoad(lt LoadType) error {
 		return err
 	}
 
-	var up upload.Uploader = nil
-
+	var up upload.Uploader
 	switch lt {
-	case ConfigMap:
+	case cmd.ConfigMap:
 		uploader, err := upload.NewConfigMapUploader(&upload.UploaderOptions{
 			Kubeconfig:  lp.kubeconfig,
 			Target:      lp.target,
@@ -101,7 +91,7 @@ func executeLoad(lt LoadType) error {
 			return err
 		}
 		up = uploader
-	case Secret:
+	case cmd.Secret:
 		uploader, err := upload.NewSecretUploader(&upload.UploaderOptions{
 			Kubeconfig:  lp.kubeconfig,
 			Target:      lp.target,
@@ -116,8 +106,9 @@ func executeLoad(lt LoadType) error {
 			return err
 		}
 		up = uploader
-	case Folder:
+	case cmd.Folder:
 		uploader, err := upload.NewFolderUploader(&upload.UploaderOptions{
+			Source:   lp.folder,
 			Target:   lp.target,
 			Includes: lp.includes,
 			Excludes: lp.excludes,
@@ -137,7 +128,6 @@ func executeLoad(lt LoadType) error {
 }
 
 func init() {
-	loadCmd.PersistentFlags().BoolVarP(&lp.verbose, "verbose", "v", false, "verbose output")
 	loadCmd.PersistentFlags().StringVarP(&lp.git, "git", "g", "", "git repository address, either http(s) or ssh protocol has to be specified")
 	loadCmd.PersistentFlags().StringVarP(&lp.branch, "branch", "b", "master", "branch name to pull")
 	loadCmd.PersistentFlags().StringVarP(&lp.folder, "cache-folder", "c", "/tmp/git2kube/data/", "destination on filesystem where cache of repository will be stored")

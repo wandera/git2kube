@@ -1,6 +1,7 @@
 package upload
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"github.com/imdario/mergo"
@@ -14,11 +15,11 @@ import (
 	typedcore "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"regexp"
-	"strings"
-	"encoding/base64"
 	"os"
 	"path"
+	"path/filepath"
+	"regexp"
+	"strings"
 )
 
 const refAnnotation = "git2kube.github.com/ref"
@@ -436,7 +437,15 @@ func NewFolderUploader(o *UploaderOptions) (Uploader, error) {
 func (u *folderUploader) Upload(commitID string, iter *object.FileIter) error {
 	err := iter.ForEach(func(file *object.File) error {
 		if filterFile(file, u.includes, u.excludes) {
-			return os.Link(path.Join(u.sourcePath, file.Name), path.Join(u.name, strings.Replace(file.Name, "/", ".", -1)))
+			src := path.Join(u.sourcePath, file.Name)
+			if _, err := os.Lstat(src); err == nil {
+				src, _ = filepath.Abs(src)
+			}
+			dest := path.Join(u.name, file.Name)
+			if _, err := os.Lstat(dest); err == nil {
+				os.Remove(dest)
+			}
+			return os.Symlink(src, dest)
 		}
 		return nil
 	})
