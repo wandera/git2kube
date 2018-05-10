@@ -5,8 +5,10 @@ import (
 	"os"
 )
 
+// LoadType upload type
 type LoadType int
 
+// LoadType options enum
 const (
 	ConfigMap LoadType = iota
 	Secret
