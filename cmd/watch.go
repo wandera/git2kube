@@ -6,25 +6,35 @@ import (
 	"github.com/WanderaOrg/git2kube/pkg/upload"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"io/ioutil"
 	"os"
 	"os/signal"
+	"path"
 	"syscall"
 	"time"
 )
 
+type healthCheckStatus string
+
+const (
+	ok  healthCheckStatus = "OK"
+	nok                   = "NOK"
+)
+
 var wp = struct {
-	kubeconfig  bool
-	git         string
-	branch      string
-	folder      string
-	target      string
-	namespace   string
-	mergetype   string
-	interval    int
-	includes    []string
-	excludes    []string
-	labels      []string
-	annotations []string
+	kubeconfig      bool
+	git             string
+	branch          string
+	folder          string
+	target          string
+	namespace       string
+	mergetype       string
+	interval        int
+	includes        []string
+	excludes        []string
+	labels          []string
+	annotations     []string
+	healthCheckFile string
 }{}
 
 var watchCmd = &cobra.Command{
@@ -134,7 +144,7 @@ func executeWatch(lt cmd.LoadType) error {
 			case <-ticker.C:
 				err := refresh(fetcher, up)
 				if err != nil {
-					log.Warn(err)
+					log.Warnf("Sync failed: %v", err)
 				}
 			case <-stop:
 				ticker.Stop()
@@ -157,23 +167,45 @@ func executeWatch(lt cmd.LoadType) error {
 func refresh(fetcher fetch.Fetcher, uploader upload.Uploader) error {
 	c, err := fetcher.Fetch()
 	if err != nil {
+		writeHealthCheck(nok)
 		return err
 	}
 
 	iter, err := c.Files()
 	if err != nil {
+		writeHealthCheck(nok)
 		return err
 	}
 
 	err = uploader.Upload(c.ID().String(), iter)
 	if err != nil {
+		writeHealthCheck(nok)
 		return err
 	}
 
-	return err
+	writeHealthCheck(ok)
+	return nil
+}
+
+func writeHealthCheck(status healthCheckStatus) {
+	if wp.healthCheckFile != "" {
+		go func() {
+			dir := path.Dir(wp.healthCheckFile)
+			err := os.MkdirAll(dir, os.ModePerm)
+			if err != nil {
+				log.Errorf("Unable to create healthcheck folder")
+			}
+
+			err = ioutil.WriteFile(wp.healthCheckFile, []byte(status), 0644)
+			if err != nil {
+				log.Errorf("Unable to write healthcheck file")
+			}
+		}()
+	}
 }
 
 func init() {
+	watchCmd.PersistentFlags().StringVar(&wp.healthCheckFile, "healthcheck-file", "", "path to file where each refresh writes if it was successful or not, useful for K8s liveness/readiness probe")
 	watchCmd.PersistentFlags().IntVarP(&wp.interval, "interval", "i", 10, "interval in seconds in which to try refreshing ConfigMap from git")
 	watchCmd.PersistentFlags().StringVarP(&wp.git, "git", "g", "", "git repository address, either http(s) or ssh protocol has to be specified")
 	watchCmd.PersistentFlags().StringVarP(&wp.branch, "branch", "b", "master", "branch name to pull")
@@ -181,6 +213,8 @@ func init() {
 	watchCmd.PersistentFlags().StringSliceVar(&wp.includes, "include", []string{".*"}, "regex that if is a match includes the file in the upload, example: '*.yaml' or 'folder/*' if you want to match a folder")
 	watchCmd.PersistentFlags().StringSliceVar(&wp.excludes, "exclude", []string{"^\\..*"}, "regex that if is a match excludes the file from the upload, example: '*.yaml' or 'folder/*' if you want to match a folder")
 	watchCmd.MarkPersistentFlagRequired("git")
+	watchCmd.MarkPersistentFlagFilename("cache-folder")
+	watchCmd.MarkPersistentFlagFilename("healthcheck-file")
 
 	watchConfigmapCmd.Flags().BoolVarP(&wp.kubeconfig, "kubeconfig", "k", false, "true if locally stored ~/.kube/config should be used, InCluster config will be used if false (options: true|false) (default: false)")
 	watchConfigmapCmd.Flags().StringVarP(&wp.namespace, "namespace", "n", "default", "target namespace for the resulting ConfigMap")
@@ -202,6 +236,7 @@ func init() {
 
 	watchFolderCmd.Flags().StringVarP(&wp.target, "target-folder", "t", "", "path to target folder")
 	watchFolderCmd.MarkFlagRequired("target-folder")
+	watchFolderCmd.MarkFlagFilename("target-folder")
 
 	watchCmd.AddCommand(watchConfigmapCmd)
 	watchCmd.AddCommand(watchSecretCmd)
