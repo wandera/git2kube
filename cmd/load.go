@@ -137,7 +137,9 @@ func init() {
 	loadCmd.PersistentFlags().StringVarP(&lp.folder, "cache-folder", "c", "/tmp/git2kube/data/", "destination on filesystem where cache of repository will be stored")
 	loadCmd.PersistentFlags().StringSliceVar(&lp.includes, "include", []string{".*"}, "regex that if is a match includes the file in the upload, example: '*.yaml' or 'folder/*' if you want to match a folder")
 	loadCmd.PersistentFlags().StringSliceVar(&lp.excludes, "exclude", []string{"^\\..*"}, "regex that if is a match excludes the file from the upload, example: '*.yaml' or 'folder/*' if you want to match a folder")
+
 	loadCmd.MarkPersistentFlagRequired("git")
+	loadCmd.MarkPersistentFlagFilename("cache-folder")
 
 	loadConfigmapCmd.Flags().BoolVarP(&lp.kubeconfig, "kubeconfig", "k", false, "true if locally stored ~/.kube/config should be used, InCluster config will be used if false (options: true|false) (default: false)")
 	loadConfigmapCmd.Flags().StringVarP(&lp.namespace, "namespace", "n", "default", "target namespace for the resulting ConfigMap")
@@ -159,6 +161,7 @@ func init() {
 
 	loadFolderCmd.Flags().StringVarP(&lp.target, "target-folder", "t", "", "path to target folder")
 	loadFolderCmd.MarkFlagRequired("target-folder")
+	loadFolderCmd.MarkFlagFilename("target-folder")
 
 	loadCmd.AddCommand(loadConfigmapCmd)
 	loadCmd.AddCommand(loadSecretCmd)
