@@ -34,15 +34,20 @@ const (
 	Upsert MergeType = "upsert"
 )
 
+// FileIter provides an iterator for the files in a tree.
+type FileIter interface {
+	ForEach(cb func(*object.File) error) error
+}
+
 // Uploader uploading data to target
 type Uploader interface {
 	// Upload files into config map tagged by commitID
-	Upload(commitID string, iter *object.FileIter) error
+	Upload(commitID string, iter FileIter) error
 }
 
 type uploader struct {
 	restconfig  *rest.Config
-	clientset   *kubernetes.Clientset
+	clientset   kubernetes.Interface
 	namespace   string
 	name        string
 	mergeType   MergeType
@@ -121,7 +126,7 @@ func NewConfigMapUploader(o *UploaderOptions) (Uploader, error) {
 	}, nil
 }
 
-func (u *configmapUploader) Upload(commitID string, iter *object.FileIter) error {
+func (u *configmapUploader) Upload(commitID string, iter FileIter) error {
 	configMaps := u.clientset.CoreV1().ConfigMaps(u.namespace)
 
 	data, err := u.iterToConfigMapData(iter)
@@ -220,7 +225,7 @@ func (u *configmapUploader) createConfigMap(configMaps typedcore.ConfigMapInterf
 	return nil
 }
 
-func (u *configmapUploader) iterToConfigMapData(iter *object.FileIter) (map[string]string, error) {
+func (u *configmapUploader) iterToConfigMapData(iter FileIter) (map[string]string, error) {
 	var data = make(map[string]string)
 	err := iter.ForEach(func(file *object.File) error {
 		if filterFile(file, u.includes, u.excludes) {
@@ -283,7 +288,7 @@ func NewSecretUploader(o *UploaderOptions) (Uploader, error) {
 	}, nil
 }
 
-func (u *secretUploader) Upload(commitID string, iter *object.FileIter) error {
+func (u *secretUploader) Upload(commitID string, iter FileIter) error {
 	secrets := u.clientset.CoreV1().Secrets(u.namespace)
 
 	data, err := u.iterToSecretData(iter)
@@ -382,7 +387,7 @@ func (u *secretUploader) createSecret(secrets typedcore.SecretInterface, data ma
 	return nil
 }
 
-func (u *secretUploader) iterToSecretData(iter *object.FileIter) (map[string][]byte, error) {
+func (u *secretUploader) iterToSecretData(iter FileIter) (map[string][]byte, error) {
 	var data = make(map[string][]byte)
 	err := iter.ForEach(func(file *object.File) error {
 		if filterFile(file, u.includes, u.excludes) {
@@ -434,7 +439,7 @@ func NewFolderUploader(o *UploaderOptions) (Uploader, error) {
 	}, nil
 }
 
-func (u *folderUploader) Upload(commitID string, iter *object.FileIter) error {
+func (u *folderUploader) Upload(commitID string, iter FileIter) error {
 	err := iter.ForEach(func(file *object.File) error {
 		if filterFile(file, u.includes, u.excludes) {
 			src := path.Join(u.sourcePath, file.Name)
