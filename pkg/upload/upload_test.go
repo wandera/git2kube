@@ -1,6 +1,7 @@
 package upload
 
 import (
+	"encoding/base64"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/filemode"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
@@ -51,6 +52,18 @@ var basicCases = []struct {
 	contains    []string
 }{
 	{
+		name:        "Empty JSON in default namespace no include",
+		namespace:   "default",
+		target:      "git2kube",
+		labels:      map[string]string{},
+		annotations: map[string]string{},
+		iter: &mockFileIter{
+			files: []*object.File{
+				object.NewFile("test.json", filemode.Regular, &object.Blob{}),
+			},
+		},
+	},
+	{
 		name:        "Empty JSON in default namespace include all",
 		namespace:   "default",
 		target:      "git2kube",
@@ -68,13 +81,16 @@ var basicCases = []struct {
 		contains: []string{"test.json", "test.yaml"},
 	},
 	{
-		name:        "Empty JSON in default namespace include json",
+		name:        "Empty JSON in default namespace include all exclude yaml",
 		namespace:   "default",
 		target:      "git2kube",
 		labels:      map[string]string{},
 		annotations: map[string]string{},
 		includes: []*regexp.Regexp{
-			regexp.MustCompile(".*\\.json"),
+			regexp.MustCompile(".*"),
+		},
+		excludes: []*regexp.Regexp{
+			regexp.MustCompile(".*\\.yaml"),
 		},
 		iter: &mockFileIter{
 			files: []*object.File{
@@ -83,6 +99,18 @@ var basicCases = []struct {
 			},
 		},
 		contains: []string{"test.json"},
+	},
+	{
+		name:        "Empty JSON in default namespace no include",
+		namespace:   "default",
+		target:      "git2kube",
+		labels:      map[string]string{},
+		annotations: map[string]string{},
+		iter: &mockFileIter{
+			files: []*object.File{
+				object.NewFile("test.json", filemode.Regular, &object.Blob{}),
+			},
+		},
 	},
 	{
 		name:        "No files in config namespace",
@@ -218,7 +246,14 @@ func assertData(data map[string]string, t *testing.T, name string, contains []st
 	}
 
 	for _, k := range contains {
-		if _, ok := data[k]; !ok {
+		if v, ok := data[k]; ok {
+			content, _ := ioutil.ReadFile(filepath.Join("testdata", k))
+			base64content := make([]byte, base64.StdEncoding.EncodedLen(len(content)))
+			base64.StdEncoding.Encode(base64content, content)
+			if v != string(content) && v != string(base64content) {
+				t.Errorf("%s case failed: content mismatch expected '%s' but got '%s(%s)' instead", name, content, base64content, v)
+			}
+		} else {
 			t.Errorf("%s case failed: expected data with key '%s' in '%s'", name, k, data)
 		}
 	}
