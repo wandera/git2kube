@@ -119,7 +119,7 @@ func NewAuth(git string, sshkey string) (transport.AuthMethod, error) {
 		return nil, err
 	}
 
-	if sshkey != "" {
+	if strings.HasPrefix(ep.Protocol, "ssh") && sshkey != "" {
 		var signer ssh.Signer
 		sshFile, err := os.Open(sshkey)
 		if err != nil {
