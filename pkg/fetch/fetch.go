@@ -56,7 +56,7 @@ func (f *fetcher) Fetch() (*object.Commit, error) {
 
 	log.Info("Fetching changes")
 	err = r.Fetch(&git.FetchOptions{
-		Auth:  f.auth,
+		Auth: f.auth,
 	})
 	if err != nil && err != git.NoErrAlreadyUpToDate {
 		log.Errorf("Failed to fetch remote changes: %v", err)

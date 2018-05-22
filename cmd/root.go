@@ -1,9 +1,9 @@
 package cmd
 
 import (
-	"github.com/spf13/cobra"
-	log "github.com/sirupsen/logrus"
 	"fmt"
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 )
 
 var loglevel string

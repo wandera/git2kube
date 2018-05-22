@@ -1,10 +1,10 @@
 package cmd
 
 import (
-	"testing"
 	"github.com/spf13/cobra"
-	"reflect"
 	"os"
+	"reflect"
+	"testing"
 )
 
 func TestExpandArgs(t *testing.T) {
@@ -73,7 +73,7 @@ func TestExpandArgs(t *testing.T) {
 				"This is $ENV property $ENV2",
 			},
 			env: map[string]string{
-				"ENV": "test",
+				"ENV":  "test",
 				"ENV2": "test2",
 			},
 			result: []string{

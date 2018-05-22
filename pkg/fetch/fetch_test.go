@@ -1,10 +1,10 @@
 package fetch
 
 import (
-	"testing"
+	"go/types"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport/http"
-	"go/types"
+	"testing"
 )
 
 func TestNewAuth(t *testing.T) {
