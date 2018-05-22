@@ -33,6 +33,7 @@ git2kube watch secret [flags]
       --include strings           regex that if is a match includes the file in the upload, example: '*.yaml' or 'folder/*' if you want to match a folder (default [.*])
   -i, --interval int              interval in seconds in which to try refreshing ConfigMap from git (default 10)
   -l, --log-level string          command log level (options: [panic fatal error warning info debug]) (default "info")
+  -p, --ssh-key string            path to the SSH private key (git repository address should be 'git@<address>', example: git@github.com:WanderaOrg/git2kube.git)
 ```
 
 ### SEE ALSO

@@ -213,7 +213,7 @@ func init() {
 	watchCmd.PersistentFlags().StringVarP(&wp.folder, "cache-folder", "c", "/tmp/git2kube/data/", "destination on filesystem where cache of repository will be stored")
 	watchCmd.PersistentFlags().StringSliceVar(&wp.includes, "include", []string{".*"}, "regex that if is a match includes the file in the upload, example: '*.yaml' or 'folder/*' if you want to match a folder")
 	watchCmd.PersistentFlags().StringSliceVar(&wp.excludes, "exclude", []string{"^\\..*"}, "regex that if is a match excludes the file from the upload, example: '*.yaml' or 'folder/*' if you want to match a folder")
-	watchCmd.PersistentFlags().StringVarP(&wp.sshkey, "ssh-key", "k", "", "path to the SSH private key")
+	watchCmd.PersistentFlags().StringVarP(&wp.sshkey, "ssh-key", "p", "", "path to the SSH private key (git repository address should be 'git@<address>', example: git@github.com:WanderaOrg/git2kube.git)")
 	watchCmd.MarkPersistentFlagRequired("git")
 	watchCmd.MarkPersistentFlagFilename("cache-folder")
 	watchCmd.MarkPersistentFlagFilename("healthcheck-file")

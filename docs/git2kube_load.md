@@ -15,6 +15,7 @@ Loads files from git repository into target
   -g, --git string            git repository address, either http(s) or ssh protocol has to be specified
   -h, --help                  help for load
       --include strings       regex that if is a match includes the file in the upload, example: '*.yaml' or 'folder/*' if you want to match a folder (default [.*])
+  -p, --ssh-key string        path to the SSH private key (git repository address should be 'git@<address>', example: git@github.com:WanderaOrg/git2kube.git)
 ```
 
 ### Options inherited from parent commands

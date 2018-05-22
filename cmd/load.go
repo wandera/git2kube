@@ -138,7 +138,7 @@ func init() {
 	loadCmd.PersistentFlags().StringVarP(&lp.folder, "cache-folder", "c", "/tmp/git2kube/data/", "destination on filesystem where cache of repository will be stored")
 	loadCmd.PersistentFlags().StringSliceVar(&lp.includes, "include", []string{".*"}, "regex that if is a match includes the file in the upload, example: '*.yaml' or 'folder/*' if you want to match a folder")
 	loadCmd.PersistentFlags().StringSliceVar(&lp.excludes, "exclude", []string{"^\\..*"}, "regex that if is a match excludes the file from the upload, example: '*.yaml' or 'folder/*' if you want to match a folder")
-	loadCmd.PersistentFlags().StringVarP(&lp.sshkey, "ssh-key", "k", "", "path to the SSH private key")
+	loadCmd.PersistentFlags().StringVarP(&lp.sshkey, "ssh-key", "p", "", "path to the SSH private key (git repository address should be 'git@<address>', example: git@github.com:WanderaOrg/git2kube.git)")
 
 	loadCmd.MarkPersistentFlagRequired("git")
 	loadCmd.MarkPersistentFlagFilename("cache-folder")
