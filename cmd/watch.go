@@ -32,7 +32,7 @@ var wp = struct {
 	interval        int
 	includes        []string
 	excludes        []string
-	sshkey          string	
+	sshkey          string
 	labels          []string
 	annotations     []string
 	healthCheckFile string

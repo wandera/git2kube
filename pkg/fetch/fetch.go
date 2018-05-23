@@ -3,8 +3,6 @@ package fetch
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
-	"os"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
 	"gopkg.in/src-d/go-git.v4"
@@ -13,6 +11,8 @@ import (
 	"gopkg.in/src-d/go-git.v4/plumbing/transport"
 	githttp "gopkg.in/src-d/go-git.v4/plumbing/transport/http"
 	gitssh "gopkg.in/src-d/go-git.v4/plumbing/transport/ssh"
+	"io/ioutil"
+	"os"
 	"strings"
 )
 

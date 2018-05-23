@@ -32,21 +32,21 @@ func TestNewAuth(t *testing.T) {
 			git:  "git@github.com:WanderaOrg/git2kube.git",
 			key:  "testdata/dummy.key",
 			result: &gitssh.PublicKeys{
-				User: "git",
+				User:   "git",
 				Signer: nil,
 			},
 		},
 		{
-			name: "HTTP url with private key",
-			git:  "https://github.com/WanderaOrg/git2kube.git",
-			key:  "/tmp/i_am_not_here.key",
+			name:   "HTTP url with private key",
+			git:    "https://github.com/WanderaOrg/git2kube.git",
+			key:    "/tmp/i_am_not_here.key",
 			result: nil,
 		},
 		{
-			name: "SSH url without private key",
-			git:  "git@github.com:WanderaOrg/git2kube.git",
+			name:   "SSH url without private key",
+			git:    "git@github.com:WanderaOrg/git2kube.git",
 			result: nil,
-		},								
+		},
 	}
 
 	for _, c := range cases {
@@ -54,13 +54,13 @@ func TestNewAuth(t *testing.T) {
 		if err != nil {
 			t.Errorf("%s case failed: %s", c.name, err)
 		}
-		
+
 		if m == nil && c.result != nil {
 			t.Errorf("%s case failed: result should have been %s but got nil instead", c.name, c.result)
 		} else if m != nil && c.result == nil {
 			t.Errorf("%s case failed: result should have been nil but got %s instead", c.name, c.result)
 		}
-		
+
 		switch m.(type) {
 		case *http.BasicAuth:
 			g := m.(*http.BasicAuth)
