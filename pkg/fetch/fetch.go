@@ -1,13 +1,18 @@
 package fetch
 
 import (
+	"errors"
 	"fmt"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/crypto/ssh"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport"
-	"gopkg.in/src-d/go-git.v4/plumbing/transport/http"
+	githttp "gopkg.in/src-d/go-git.v4/plumbing/transport/http"
+	gitssh "gopkg.in/src-d/go-git.v4/plumbing/transport/ssh"
+	"io/ioutil"
+	"os"
 	"strings"
 )
 
@@ -106,7 +111,7 @@ func (f *fetcher) Fetch() (*object.Commit, error) {
 }
 
 // NewAuth creates new AuthMethod based on URI
-func NewAuth(git string) (transport.AuthMethod, error) {
+func NewAuth(git string, sshkey string) (transport.AuthMethod, error) {
 	var auth transport.AuthMethod
 
 	ep, err := transport.NewEndpoint(git)
@@ -114,8 +119,28 @@ func NewAuth(git string) (transport.AuthMethod, error) {
 		return nil, err
 	}
 
+	if strings.HasPrefix(ep.Protocol, "ssh") && sshkey != "" {
+		var signer ssh.Signer
+		sshFile, err := os.Open(sshkey)
+		if err != nil {
+			return nil, errors.New("Couldn't open SSH key: " + err.Error())
+		}
+		sshB, err := ioutil.ReadAll(sshFile)
+		if err != nil {
+			return nil, errors.New("Couldn't read SSH key: " + err.Error())
+		}
+
+		signer, err = ssh.ParsePrivateKey(sshB)
+		if err != nil {
+			return nil, errors.New("Couldn't parse SSH key: " + err.Error())
+		}
+
+		sshAuth := &gitssh.PublicKeys{User: "git", Signer: signer}
+		return sshAuth, nil
+	}
+
 	if strings.HasPrefix(ep.Protocol, "http") && ep.User != "" && ep.Password != "" {
-		auth = &http.BasicAuth{
+		auth = &githttp.BasicAuth{
 			Username: ep.User,
 			Password: ep.Password,
 		}
