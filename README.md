@@ -1,4 +1,4 @@
-# git2kube - Git to K8s ConfigMap
+# git2kube - From Git to Kubernetes
            
 [![Build Status](https://travis-ci.org/WanderaOrg/git2kube.svg?branch=master)](https://travis-ci.org/WanderaOrg/git2kube)
 [![Docker Build Status](https://img.shields.io/docker/build/wanderadock/git2kube.svg)](https://hub.docker.com/r/wanderadock/git2kube/)
@@ -16,6 +16,9 @@ Tool for syncing git with Kubernetes.
 * Configurable include/exclude rules for filtering files that should be synchronised
 * Ability to synchronise git into target folder using symlinks (suitable for sidecar deployments)
 * SSH key and Basic auth
+
+### Quickstart
+Check out [example](example) folder that should get you started. 
 
 ### Docker repository
 The tool is released as docker image as well, check the [repository](https://hub.docker.com/r/wanderadock/git2kube/).
