@@ -1,0 +1,106 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: git2kube-watcher
+  namespace: config
+  labels:
+    app: git2kube-watcher
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: git2kube-watcher
+  labels:
+    app: git2kube-watcher
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - create
+  - update
+  - patch
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: git2kube-watcher
+  labels:
+    app: git2kube-watcher
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: git2kube-watcher
+subjects:
+- kind: ServiceAccount
+  name: git2kube-watcher
+  namespace: config
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: git2kube-watcher
+  namespace: config
+  labels:
+    app: git2kube-watcher
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: git2kube-watcher
+  template:
+    metadata:
+      labels:
+        app: git2kube-watcher
+    spec:
+      serviceAccountName: git2kube-watcher
+      containers:
+        - name: git2kube-prometheus-rules
+          image: wanderadock/git2kube
+          args:
+          - 'watch'
+          - 'configmap'
+          - '--configmap=alert-rules'
+          - '--namespace=monitoring'
+          - '--healthcheck-file=/tmp/health'
+          - '--branch=master'
+          - '--git=https://github.com/prometheus/mysqld_exporter.git'
+          - '--include=.*\.rules'
+          - '--interval=30'
+          - '--label=prometheus=k8s'
+          - '--label=role=alert-rules'
+          livenessProbe:
+            exec:
+              command:
+              - /bin/sh
+              - -c
+              - "grep -Fxq OK /tmp/health"
+            initialDelaySeconds: 10
+            periodSeconds: 35
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command:
+              - /bin/sh
+              - -c
+              - "grep -Fxq OK /tmp/health"
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 32Mi
+            limits:
+              cpu: 200m
+              memory: 64Mi

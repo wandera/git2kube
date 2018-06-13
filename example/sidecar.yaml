@@ -1,0 +1,70 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: git2kube-watcher
+  namespace: config
+  labels:
+    app: git2kube-watcher
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: git2kube-watcher
+  template:
+    metadata:
+      labels:
+        app: git2kube-watcher
+    spec:
+      containers:
+      - name: busybox
+        image: busybox
+        command:
+        - watch
+        - cat
+        - "/rules/example.rules"
+        volumeMounts:
+        - mountPath: /rules
+          name: rules
+          readOnly: true
+      - name: git2kube-prometheus-rules
+        image: wanderadock/git2kube
+        args:
+        - 'watch'
+        - 'folder'
+        - '--healthcheck-file=/tmp/health'
+        - '--branch=master'
+        - '--git=https://github.com/prometheus/mysqld_exporter.git'
+        - '--include=.*\.rules'
+        - '--interval=30'
+        - '--target-folder=/rules'
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - "grep -Fxq OK /tmp/health"
+          initialDelaySeconds: 10
+          periodSeconds: 35
+          failureThreshold: 3
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - "grep -Fxq OK /tmp/health"
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: 100m
+            memory: 32Mi
+          limits:
+            cpu: 200m
+            memory: 64Mi
+        volumeMounts:
+        - mountPath: /rules
+          name: rules
+      volumes:
+      - name: rules
+        emptyDir: {}

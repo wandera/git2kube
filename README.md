@@ -19,4 +19,5 @@ The tool is released as docker image as well, check the [repository](https://hub
 
 
 ### Tool documentation
-[docs](docs/git2kube.md) - Generated documentation for the tool
+* [docs](docs/git2kube.md) - Generated documentation for the tool
+* [example](example) - Kubernetes deployment examples
