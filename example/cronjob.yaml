@@ -1,0 +1,89 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: git2kube-watcher
+  namespace: config
+  labels:
+    app: git2kube-watcher
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: git2kube-watcher
+  labels:
+    app: git2kube-watcher
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - create
+  - update
+  - patch
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: git2kube-watcher
+  labels:
+    app: git2kube-watcher
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: git2kube-watcher
+subjects:
+- kind: ServiceAccount
+  name: git2kube-watcher
+  namespace: config
+---
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: git2kube
+  namespace: config
+  labels:
+    app: git2kube
+spec:
+  schedule: "*/5 * * * *"
+  jobTemplate:
+    metadata:
+      labels:
+        app: git2kube
+    spec:
+      template:
+        metadata:
+          labels:
+            app: git2kube
+        spec:
+          serviceAccountName: git2kube-watcher
+          containers:
+          - name: git2kube-prometheus-rules
+            image: wanderadock/git2kube
+            args:
+            - 'load'
+            - 'configmap'
+            - '--configmap=alert-rules'
+            - '--namespace=monitoring'
+            - '--branch=master'
+            - '--git=https://github.com/prometheus/mysqld_exporter.git'
+            - '--include=.*\.rules'
+            - '--label=prometheus=k8s'
+            - '--label=role=alert-rules'
+            resources:
+              requests:
+                cpu: 100m
+                memory: 32Mi
+              limits:
+                cpu: 200m
+                memory: 64Mi
