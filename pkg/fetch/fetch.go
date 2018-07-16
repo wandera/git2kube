@@ -49,6 +49,7 @@ func (f *fetcher) Fetch() (*object.Commit, error) {
 		r, err = git.PlainClone(f.directory, false, &git.CloneOptions{
 			URL:           f.url,
 			Auth:          f.auth,
+			NoCheckout:    true,
 			ReferenceName: plumbing.ReferenceName(fmt.Sprintf("refs/heads/%s", f.branch)),
 		})
 		if err != nil {
