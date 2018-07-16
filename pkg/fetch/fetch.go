@@ -50,6 +50,7 @@ func (f *fetcher) Fetch() (*object.Commit, error) {
 			URL:           f.url,
 			Auth:          f.auth,
 			NoCheckout:    true,
+			Depth:         1,
 			ReferenceName: plumbing.ReferenceName(fmt.Sprintf("refs/heads/%s", f.branch)),
 		})
 		if err != nil {
@@ -62,7 +63,8 @@ func (f *fetcher) Fetch() (*object.Commit, error) {
 
 	log.Info("Fetching changes")
 	err = r.Fetch(&git.FetchOptions{
-		Auth: f.auth,
+		Auth:  f.auth,
+		Depth: 1,
 	})
 	if err != nil && err != git.NoErrAlreadyUpToDate {
 		log.Errorf("Failed to fetch remote changes: %v", err)
@@ -73,7 +75,7 @@ func (f *fetcher) Fetch() (*object.Commit, error) {
 	if err != nil {
 		return nil, err
 	}
-	localRef, err := r.Reference(plumbing.ReferenceName("HEAD"), true)
+	localRef, err := r.Head()
 	if err != nil {
 		return nil, err
 	}
