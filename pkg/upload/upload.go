@@ -350,7 +350,7 @@ func (u *secretUploader) patchSecret(oldSecret *corev1.Secret, secrets typedcore
 		return err
 	}
 
-	patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldData, newData, corev1.ConfigMap{})
+	patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldData, newData, corev1.Secret{})
 	if err != nil {
 		return err
 	}
