@@ -1,7 +1,7 @@
 language: go
 go:
-- "1.10"
-- master
+- "1.11"
+- "master"
 
 notifications:
   email:
@@ -18,30 +18,24 @@ matrix:
 cache:
   directories:
   - $GOPATH/pkg
-  - $GOPATH/bin
 
 env:
-- DEP_VERSION="0.4.1"
+- GO111MODULE=on
 
 before_install:
-# Download the binary to bin folder in $GOPATH
-- curl -L -s https://github.com/golang/dep/releases/download/v${DEP_VERSION}/dep-linux-amd64 -o $GOPATH/bin/dep
-# Make the binary executable
-- chmod +x $GOPATH/bin/dep
 # Get golint
 - go get github.com/golang/lint/golint
 
-install:
-- dep ensure -vendor-only
+install: true
 
 script:
   - |
     go test -v ./...
     go vet -v ./...
     golint -set_exit_status $(go list ./...)
-    if [ -n "$(gofmt -s -l $(find . -type f -name '*.go' -not -path "./vendor/*"))" ]; then
+    if [ -n "$(gofmt -s -l $(find . -type f -name '*.go'))" ]; then
         echo "Go code is not formatted:"
-        gofmt -s -d -e $(find . -type f -name '*.go' -not -path "./vendor/*")
+        gofmt -s -d -e $(find . -type f -name '*.go')
         exit 1
     fi
 
