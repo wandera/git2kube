@@ -1,23 +1,15 @@
 # Builder image
-FROM golang:1.10 AS builder
-RUN curl -fsSL -o /usr/local/bin/dep https://github.com/golang/dep/releases/download/v0.4.1/dep-linux-amd64 \
-    && chmod +x /usr/local/bin/dep
+FROM golang:1.11 AS builder
 
-RUN mkdir -p /go/src/github.com/WanderaOrg/git2kube/
-WORKDIR /go/src/github.com/WanderaOrg/git2kube/
+WORKDIR /build
+COPY go.mod go.sum ./
+RUN go mod download
 
-COPY Gopkg.toml Gopkg.lock ./
-RUN dep ensure -vendor-only
-
-COPY cmd/ ./cmd
-COPY pkg/ ./pkg
-COPY main.go .
-
-RUN CGO_ENABLED=0 go build -o bin/git2kube
-
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -v
 
 # Runtime image
-FROM alpine:latest
+FROM alpine:3.8
 RUN apk --no-cache add ca-certificates
 
 RUN apk --no-cache --virtual .openssh add openssh \
@@ -25,7 +17,7 @@ RUN apk --no-cache --virtual .openssh add openssh \
     && ssh-keyscan -t rsa github.com > /etc/ssh/ssh_known_hosts \
     && apk del .openssh
 
-COPY --from=builder /go/src/github.com/WanderaOrg/git2kube/bin/git2kube /app/git2kube
+COPY --from=builder /build/git2kube /app/git2kube
 WORKDIR /app
 
 ENTRYPOINT ["./git2kube"]
