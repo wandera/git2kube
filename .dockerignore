@@ -1,6 +1,7 @@
 .git
 .gitignore
 Dockerfile
+LICENSE
 README.md
 docker-compose.yml
 target/
@@ -11,3 +12,4 @@ vendor/
 *.prefs
 *.iml
 .idea
+git2kube
