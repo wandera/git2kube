@@ -3,6 +3,7 @@ package upload
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/imdario/mergo"
 	log "github.com/sirupsen/logrus"
@@ -24,6 +25,9 @@ import (
 
 const refAnnotation = "git2kube.github.com/ref"
 
+// LoadType upload type
+type LoadType int
+
 // MergeType how to merge ConfigMap data
 type MergeType string
 
@@ -34,10 +38,20 @@ const (
 	Upsert MergeType = "upsert"
 )
 
+// LoadType options enum
+const (
+	ConfigMap LoadType = iota
+	Secret
+	Folder
+)
+
 // FileIter provides an iterator for the files in a tree.
 type FileIter interface {
 	ForEach(cb func(*object.File) error) error
 }
+
+// UploaderFactory factory constructing Uploaders
+type UploaderFactory func(o UploaderOptions) (Uploader, error)
 
 // Uploader uploading data to target
 type Uploader interface {
@@ -79,8 +93,28 @@ type UploaderOptions struct {
 	Annotations []string
 }
 
-// NewConfigMapUploader creates new ConfigMapUploader
-func NewConfigMapUploader(o *UploaderOptions) (Uploader, error) {
+var uploaderFactories = make(map[LoadType]UploaderFactory)
+
+func register(loadType LoadType, factory UploaderFactory) {
+	_, registered := uploaderFactories[loadType]
+	if registered {
+		log.Errorf("Uploader factory %d already registered. Ignoring.", loadType)
+	}
+	uploaderFactories[loadType] = factory
+}
+
+// NewUploader create uploader of specific type
+func NewUploader(lt LoadType, o UploaderOptions) (Uploader, error) {
+	engineFactory, ok := uploaderFactories[lt]
+	if !ok {
+		return nil, errors.New("invalid uploader name")
+	}
+
+	// Run the factory with the configuration.
+	return engineFactory(o)
+}
+
+func newConfigMapUploader(o UploaderOptions) (Uploader, error) {
 	restconfig, err := restConfig(o.Kubeconfig)
 	if err != nil {
 		return nil, err
@@ -241,8 +275,7 @@ func (u *configmapUploader) iterToConfigMapData(iter FileIter) (map[string]strin
 	return data, err
 }
 
-// NewSecretUploader creates new SecretUploader
-func NewSecretUploader(o *UploaderOptions) (Uploader, error) {
+func newSecretUploader(o UploaderOptions) (Uploader, error) {
 	restconfig, err := restConfig(o.Kubeconfig)
 	if err != nil {
 		return nil, err
@@ -407,8 +440,7 @@ func (u *secretUploader) iterToSecretData(iter FileIter) (map[string][]byte, err
 	return data, err
 }
 
-// NewFolderUploader creates new FolderUploader
-func NewFolderUploader(o *UploaderOptions) (Uploader, error) {
+func newFolderUploader(o UploaderOptions) (Uploader, error) {
 	err := os.RemoveAll(o.Target)
 	if err != nil {
 		return nil, err
@@ -514,4 +546,10 @@ func stringsToMap(strs []string) (map[string]string, error) {
 	}
 
 	return result, nil
+}
+
+func init() {
+	register(ConfigMap, newConfigMapUploader)
+	register(Secret, newSecretUploader)
+	register(Folder, newFolderUploader)
 }

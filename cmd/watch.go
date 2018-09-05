@@ -50,7 +50,7 @@ var watchConfigmapCmd = &cobra.Command{
 	Short:              "Runs watcher that periodically check the provided repository and updates K8s ConfigMap accordingly",
 	DisableFlagParsing: true,
 	RunE: func(c *cobra.Command, args []string) error {
-		return executeWatch(cmd.ConfigMap)
+		return executeWatch(upload.ConfigMap)
 	},
 }
 
@@ -59,7 +59,7 @@ var watchSecretCmd = &cobra.Command{
 	Short:              "Runs watcher that periodically check the provided repository and updates K8s Secret accordingly",
 	DisableFlagParsing: true,
 	RunE: func(c *cobra.Command, args []string) error {
-		return executeWatch(cmd.Secret)
+		return executeWatch(upload.Secret)
 	},
 }
 
@@ -68,11 +68,11 @@ var watchFolderCmd = &cobra.Command{
 	Short:              "Runs watcher that periodically check the provided repository and updates target folder accordingly",
 	DisableFlagParsing: true,
 	RunE: func(c *cobra.Command, args []string) error {
-		return executeWatch(cmd.Folder)
+		return executeWatch(upload.Folder)
 	},
 }
 
-func executeWatch(lt cmd.LoadType) error {
+func executeWatch(lt upload.LoadType) error {
 	if err := os.MkdirAll(wp.folder, os.ModePerm); err != nil {
 		return err
 	}
@@ -84,52 +84,22 @@ func executeWatch(lt cmd.LoadType) error {
 
 	fetcher := fetch.NewFetcher(wp.git, wp.folder, wp.branch, auth)
 
-	var up upload.Uploader
-	switch lt {
-	case cmd.ConfigMap:
-		uploader, err := upload.NewConfigMapUploader(&upload.UploaderOptions{
-			Kubeconfig:  wp.kubeconfig,
-			Target:      wp.target,
-			Namespace:   wp.namespace,
-			MergeType:   upload.MergeType(wp.mergetype),
-			Includes:    wp.includes,
-			Excludes:    wp.excludes,
-			Annotations: wp.annotations,
-			Labels:      wp.labels,
-		})
-		if err != nil {
-			return err
-		}
-		up = uploader
-	case cmd.Secret:
-		uploader, err := upload.NewSecretUploader(&upload.UploaderOptions{
-			Kubeconfig:  wp.kubeconfig,
-			Target:      wp.target,
-			Namespace:   wp.namespace,
-			MergeType:   upload.MergeType(wp.mergetype),
-			Includes:    wp.includes,
-			Excludes:    wp.excludes,
-			Annotations: wp.annotations,
-			Labels:      wp.labels,
-		})
-		if err != nil {
-			return err
-		}
-		up = uploader
-	case cmd.Folder:
-		uploader, err := upload.NewFolderUploader(&upload.UploaderOptions{
-			Source:   wp.folder,
-			Target:   wp.target,
-			Includes: wp.includes,
-			Excludes: wp.excludes,
-		})
-		if err != nil {
-			return err
-		}
-		up = uploader
+	uploader, err := upload.NewUploader(lt, upload.UploaderOptions{
+		Source:      lp.folder,
+		Kubeconfig:  lp.kubeconfig,
+		Target:      lp.target,
+		Namespace:   lp.namespace,
+		MergeType:   upload.MergeType(lp.mergetype),
+		Includes:    lp.includes,
+		Excludes:    lp.excludes,
+		Annotations: lp.annotations,
+		Labels:      lp.labels,
+	})
+	if err != nil {
+		return err
 	}
 
-	err = refresh(fetcher, up)
+	err = refresh(fetcher, uploader)
 	if err != nil {
 		log.Errorf("Initial sync failed: %v", err)
 		return err
@@ -143,7 +113,7 @@ func executeWatch(lt cmd.LoadType) error {
 		for {
 			select {
 			case <-ticker.C:
-				err := refresh(fetcher, up)
+				err := refresh(fetcher, uploader)
 				if err != nil {
 					log.Warnf("Sync failed: %v", err)
 				}
