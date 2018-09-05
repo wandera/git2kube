@@ -12,4 +12,5 @@ vendor/
 *.prefs
 *.iml
 .idea
+.travis.yml
 git2kube
