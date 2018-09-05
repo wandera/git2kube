@@ -19,6 +19,7 @@ require (
 	github.com/go-openapi/swag v0.0.0-20180703152219-2b0bd4f193d0 // indirect
 	github.com/gogo/protobuf v1.1.0 // indirect
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b // indirect
+	github.com/golang/lint v0.0.0-20180702182130-06c8688daad7 // indirect
 	github.com/golang/protobuf v1.1.0 // indirect
 	github.com/google/btree v0.0.0-20180124185431-e89373fe6b4a // indirect
 	github.com/google/go-cmp v0.2.0 // indirect
@@ -52,10 +53,12 @@ require (
 	github.com/stretchr/testify v1.2.2 // indirect
 	github.com/xanzy/ssh-agent v0.2.0 // indirect
 	golang.org/x/crypto v0.0.0-20180621125126-a49355c7e3f8
+	golang.org/x/lint v0.0.0-20180702182130-06c8688daad7 // indirect
 	golang.org/x/net v0.0.0-20180712202826-d0887baf81f4 // indirect
 	golang.org/x/sync v0.0.0-20180314180146-1d60e4601c6f // indirect
 	golang.org/x/sys v0.0.0-20180715085529-ac767d655b30 // indirect
 	golang.org/x/text v0.3.0 // indirect
+	golang.org/x/tools v0.0.0-20180904205237-0aa4b8830f48 // indirect
 	gopkg.in/airbrake/gobrake.v2 v2.0.9 // indirect
 	gopkg.in/fsnotify.v1 v1.4.7 // indirect
 	gopkg.in/gemnasium/logrus-airbrake-hook.v2 v2.1.2 // indirect

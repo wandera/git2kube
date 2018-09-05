@@ -35,7 +35,7 @@ var loadConfigmapCmd = &cobra.Command{
 	Short:              "Loads files from git repository into ConfigMap",
 	DisableFlagParsing: true,
 	RunE: func(c *cobra.Command, args []string) error {
-		return executeLoad(cmd.ConfigMap)
+		return executeLoad(upload.ConfigMap)
 	},
 }
 
@@ -44,7 +44,7 @@ var loadSecretCmd = &cobra.Command{
 	Short:              "Loads files from git repository into Secret",
 	DisableFlagParsing: true,
 	RunE: func(c *cobra.Command, args []string) error {
-		return executeLoad(cmd.Secret)
+		return executeLoad(upload.Secret)
 	},
 }
 
@@ -53,11 +53,11 @@ var loadFolderCmd = &cobra.Command{
 	Short:              "Loads files from git repository into Folder",
 	DisableFlagParsing: true,
 	RunE: func(c *cobra.Command, args []string) error {
-		return executeLoad(cmd.Folder)
+		return executeLoad(upload.Folder)
 	},
 }
 
-func executeLoad(lt cmd.LoadType) error {
+func executeLoad(lt upload.LoadType) error {
 	if err := os.MkdirAll(lp.folder, os.ModePerm); err != nil {
 		return err
 	}
@@ -79,52 +79,22 @@ func executeLoad(lt cmd.LoadType) error {
 		return err
 	}
 
-	var up upload.Uploader
-	switch lt {
-	case cmd.ConfigMap:
-		uploader, err := upload.NewConfigMapUploader(&upload.UploaderOptions{
-			Kubeconfig:  lp.kubeconfig,
-			Target:      lp.target,
-			Namespace:   lp.namespace,
-			MergeType:   upload.MergeType(lp.mergetype),
-			Includes:    lp.includes,
-			Excludes:    lp.excludes,
-			Annotations: lp.annotations,
-			Labels:      lp.labels,
-		})
-		if err != nil {
-			return err
-		}
-		up = uploader
-	case cmd.Secret:
-		uploader, err := upload.NewSecretUploader(&upload.UploaderOptions{
-			Kubeconfig:  lp.kubeconfig,
-			Target:      lp.target,
-			Namespace:   lp.namespace,
-			MergeType:   upload.MergeType(lp.mergetype),
-			Includes:    lp.includes,
-			Excludes:    lp.excludes,
-			Annotations: lp.annotations,
-			Labels:      lp.labels,
-		})
-		if err != nil {
-			return err
-		}
-		up = uploader
-	case cmd.Folder:
-		uploader, err := upload.NewFolderUploader(&upload.UploaderOptions{
-			Source:   lp.folder,
-			Target:   lp.target,
-			Includes: lp.includes,
-			Excludes: lp.excludes,
-		})
-		if err != nil {
-			return err
-		}
-		up = uploader
+	uploader, err := upload.NewUploader(lt, upload.UploaderOptions{
+		Source:      lp.folder,
+		Kubeconfig:  lp.kubeconfig,
+		Target:      lp.target,
+		Namespace:   lp.namespace,
+		MergeType:   upload.MergeType(lp.mergetype),
+		Includes:    lp.includes,
+		Excludes:    lp.excludes,
+		Annotations: lp.annotations,
+		Labels:      lp.labels,
+	})
+	if err != nil {
+		return err
 	}
 
-	err = up.Upload(c.ID().String(), iter)
+	err = uploader.Upload(c.ID().String(), iter)
 	if err != nil {
 		return err
 	}
