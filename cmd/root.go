@@ -30,6 +30,7 @@ func init() {
 	rootCmd.AddCommand(loadCmd)
 	rootCmd.AddCommand(watchCmd)
 	rootCmd.AddCommand(genDocCmd)
+	rootCmd.AddCommand(versionCmd)
 }
 
 //Execute run root command (main entrypoint)
