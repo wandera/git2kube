@@ -85,15 +85,15 @@ func executeWatch(lt upload.LoadType) error {
 	fetcher := fetch.NewFetcher(wp.git, wp.folder, wp.branch, auth)
 
 	uploader, err := upload.NewUploader(lt, upload.UploaderOptions{
-		Source:      lp.folder,
-		Kubeconfig:  lp.kubeconfig,
-		Target:      lp.target,
-		Namespace:   lp.namespace,
-		MergeType:   upload.MergeType(lp.mergetype),
-		Includes:    lp.includes,
-		Excludes:    lp.excludes,
-		Annotations: lp.annotations,
-		Labels:      lp.labels,
+		Source:      wp.folder,
+		Kubeconfig:  wp.kubeconfig,
+		Target:      wp.target,
+		Namespace:   wp.namespace,
+		MergeType:   upload.MergeType(wp.mergetype),
+		Includes:    wp.includes,
+		Excludes:    wp.excludes,
+		Annotations: wp.annotations,
+		Labels:      wp.labels,
 	})
 	if err != nil {
 		return err
