@@ -15,12 +15,13 @@ matrix:
   # Don't wait for tip tests to finish. Mark the test run green if the
   # tests pass on the stable versions of Go.
   fast_finish: true
-cache:
-  directories:
-  - $GOPATH/pkg
 
 env:
 - GO111MODULE=on
+
+before_install:
+# Get golint
+- go get github.com/golang/lint/golint
 
 install: true
 
