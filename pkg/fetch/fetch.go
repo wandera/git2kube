@@ -41,61 +41,22 @@ func NewFetcher(url string, directory string, branch string, auth transport.Auth
 
 // Fetch from remote
 func (f *fetcher) Fetch() (*object.Commit, error) {
-	var r *git.Repository
-	var err error
-
-	if r, err = git.PlainOpen(f.directory); err != nil {
-		log.Infof("Repository not found in '%s' cloning...", f.directory)
-		r, err = git.PlainClone(f.directory, false, &git.CloneOptions{
-			URL:           f.url,
-			Auth:          f.auth,
-			NoCheckout:    true,
-			Depth:         1,
-			ReferenceName: plumbing.ReferenceName(fmt.Sprintf("refs/heads/%s", f.branch)),
-		})
-		if err != nil {
-			log.Errorf("Failed to clone '%s': %v", f.branch, err)
-			return nil, err
-		}
-	} else {
-		log.Infof("Repository found in '%s' opening...", f.directory)
+	err := os.RemoveAll(f.directory)
+	if err != nil {
+		log.Errorf("Failed to clean the folder '%s': %v", f.branch, err)
+		return nil, err
 	}
 
-	log.Info("Fetching changes")
-	err = r.Fetch(&git.FetchOptions{
-		Auth:  f.auth,
-		Depth: 1,
+	log.Infof("Cloning repository in folder '%s' ...", f.directory)
+	r, err := git.PlainClone(f.directory, false, &git.CloneOptions{
+		URL:           f.url,
+		Auth:          f.auth,
+		Depth:         1,
+		ReferenceName: plumbing.ReferenceName(fmt.Sprintf("refs/heads/%s", f.branch)),
 	})
-	if err != nil && err != git.NoErrAlreadyUpToDate {
-		log.Errorf("Failed to fetch remote changes: %v", err)
-		return nil, err
-	}
-
-	remoteRef, err := r.Reference(plumbing.ReferenceName("refs/remotes/origin/"+f.branch), true)
 	if err != nil {
+		log.Errorf("Failed to clone '%s': %v", f.branch, err)
 		return nil, err
-	}
-	localRef, err := r.Head()
-	if err != nil {
-		return nil, err
-	}
-
-	w, err := r.Worktree()
-	if err != nil {
-		return nil, err
-	}
-
-	if remoteRef.Hash() != localRef.Hash() {
-		log.Infof("Local '%s' ref hash does not match remote '%s' ref hash resetting branch", localRef.Hash(), remoteRef.Hash())
-		err = w.Reset(&git.ResetOptions{
-			Mode:   git.HardReset,
-			Commit: remoteRef.Hash(),
-		})
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		log.Infof("Branch '%s' already up to date", f.branch)
 	}
 
 	ref, err := r.Head()
