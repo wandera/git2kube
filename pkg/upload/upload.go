@@ -8,6 +8,7 @@ import (
 	"github.com/imdario/mergo"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
+	"io"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -24,6 +25,7 @@ import (
 )
 
 const refAnnotation = "git2kube.github.com/ref"
+const bufferSize = 1024
 
 // LoadType upload type
 type LoadType int
@@ -478,11 +480,40 @@ func (u *folderUploader) Upload(commitID string, iter FileIter) error {
 			if _, err := os.Lstat(src); err == nil {
 				src, _ = filepath.Abs(src)
 			}
-			dest := path.Join(u.name, file.Name)
-			if _, err := os.Lstat(dest); err == nil {
-				os.Remove(dest)
+			dst := path.Join(u.name, file.Name)
+
+			source, err := os.Open(src)
+			if err != nil {
+				return err
 			}
-			return os.Symlink(src, dest)
+			defer source.Close()
+
+			if dir, _ := filepath.Split(dst); dir != "" {
+				err = os.MkdirAll(dir, 0777)
+				if err != nil {
+					return err
+				}
+			}
+
+			destination, err := os.Create(dst)
+			if err != nil {
+				return err
+			}
+			defer destination.Close()
+
+			buf := make([]byte, bufferSize)
+			for {
+				n, err := source.Read(buf)
+				if err != nil && err != io.EOF {
+					return err
+				}
+				if n == 0 {
+					break
+				}
+				if _, err := destination.Write(buf[:n]); err != nil {
+					return err
+				}
+			}
 		}
 		return nil
 	})
