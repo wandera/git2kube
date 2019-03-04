@@ -474,6 +474,7 @@ func newFolderUploader(o UploaderOptions) (Uploader, error) {
 }
 
 func (u *folderUploader) Upload(commitID string, iter FileIter) error {
+	filesToKeep := make(map[string]bool)
 	err := iter.ForEach(func(file *object.File) error {
 		if filterFile(file, u.includes, u.excludes) {
 			src := path.Join(u.sourcePath, file.Name)
@@ -481,6 +482,7 @@ func (u *folderUploader) Upload(commitID string, iter FileIter) error {
 				src, _ = filepath.Abs(src)
 			}
 			dst := path.Join(u.name, file.Name)
+			filesToKeep[dst] = true
 
 			source, err := os.Open(src)
 			if err != nil {
@@ -513,6 +515,16 @@ func (u *folderUploader) Upload(commitID string, iter FileIter) error {
 				if _, err := destination.Write(buf[:n]); err != nil {
 					return err
 				}
+			}
+		}
+		return nil
+	})
+
+	err = filepath.Walk(u.name, func(path string, info os.FileInfo, err error) error {
+		if _, exists := filesToKeep[path]; !info.IsDir() && !exists {
+			err := os.Remove(path)
+			if err != nil {
+				return err
 			}
 		}
 		return nil
