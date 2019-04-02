@@ -1,6 +1,6 @@
 language: go
 go:
-- "1.11"
+- "1.12.1"
 - "master"
 
 notifications:
@@ -19,17 +19,14 @@ matrix:
 env:
 - GO111MODULE=on
 
-before_install:
-# Get golint
-- go get github.com/golang/lint/golint
-
-install: true
+install:
+- go get -u golang.org/x/lint/golint
 
 script:
+  - go test -v ./...
+  - go vet -v ./...
+  - golint -set_exit_status $(go list ./...)
   - |
-    go test -v ./...
-    go vet -v ./...
-    golint -set_exit_status $(go list ./...)
     if [ -n "$(gofmt -s -l $(find . -type f -name '*.go'))" ]; then
         echo "Go code is not formatted:"
         gofmt -s -d -e $(find . -type f -name '*.go')

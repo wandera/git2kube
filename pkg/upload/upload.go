@@ -521,7 +521,7 @@ func (u *folderUploader) Upload(commitID string, iter FileIter) error {
 	})
 
 	err = filepath.Walk(u.name, func(path string, info os.FileInfo, err error) error {
-		if _, exists := filesToKeep[path]; !info.IsDir() && !exists {
+		if _, exists := filesToKeep[path]; info != nil && !info.IsDir() && !exists {
 			err := os.Remove(path)
 			if err != nil {
 				return err
