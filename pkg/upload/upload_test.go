@@ -1,7 +1,6 @@
 package upload
 
 import (
-	"encoding/base64"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -249,10 +248,8 @@ func assertData(data map[string]string, t *testing.T, name string, contains []st
 	for _, k := range contains {
 		if v, ok := data[k]; ok {
 			content, _ := ioutil.ReadFile(filepath.Join("testdata", k))
-			base64content := make([]byte, base64.StdEncoding.EncodedLen(len(content)))
-			base64.StdEncoding.Encode(base64content, content)
 			if v != string(content) {
-				t.Errorf("%s case failed: content mismatch expected '%s' but got '%s(%s)' instead", name, content, base64content, v)
+				t.Errorf("%s case failed: content mismatch expected '%s' but got '%s' instead", name, content, v)
 			}
 		} else {
 			t.Errorf("%s case failed: expected data with key '%s' in '%s'", name, k, data)
