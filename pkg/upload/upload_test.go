@@ -2,18 +2,19 @@ package upload
 
 import (
 	"encoding/base64"
-	"gopkg.in/src-d/go-git.v4/plumbing"
-	"gopkg.in/src-d/go-git.v4/plumbing/filemode"
-	"gopkg.in/src-d/go-git.v4/plumbing/object"
 	"io/ioutil"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
-	testclient "k8s.io/client-go/kubernetes/fake"
-	testing2 "k8s.io/client-go/testing"
 	"os"
 	"path/filepath"
 	"reflect"
 	"regexp"
 	"testing"
+
+	"gopkg.in/src-d/go-git.v4/plumbing"
+	"gopkg.in/src-d/go-git.v4/plumbing/filemode"
+	"gopkg.in/src-d/go-git.v4/plumbing/object"
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	testclient "k8s.io/client-go/kubernetes/fake"
+	testing2 "k8s.io/client-go/testing"
 )
 
 type mockFileIter struct {
@@ -250,7 +251,7 @@ func assertData(data map[string]string, t *testing.T, name string, contains []st
 			content, _ := ioutil.ReadFile(filepath.Join("testdata", k))
 			base64content := make([]byte, base64.StdEncoding.EncodedLen(len(content)))
 			base64.StdEncoding.Encode(base64content, content)
-			if v != string(content) && v != string(base64content) {
+			if v != string(content) {
 				t.Errorf("%s case failed: content mismatch expected '%s' but got '%s(%s)' instead", name, content, base64content, v)
 			}
 		} else {
