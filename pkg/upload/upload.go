@@ -1,7 +1,6 @@
 package upload
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -430,11 +429,7 @@ func (u *secretUploader) iterToSecretData(iter FileIter) (map[string][]byte, err
 			if err != nil {
 				return err
 			}
-			src := []byte(content)
-			buf := make([]byte, base64.StdEncoding.EncodedLen(len(src)))
-			base64.StdEncoding.Encode(buf, src)
-
-			data[strings.Replace(file.Name, "/", ".", -1)] = buf
+			data[strings.Replace(file.Name, "/", ".", -1)] = []byte(content)
 		}
 		return nil
 	})
