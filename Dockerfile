@@ -8,7 +8,7 @@ ARG CACHE_TAG
 ENV CACHE_TAG ${CACHE_TAG}
 
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -v -ldflags '-w -s -X 'github.com/WanderaOrg/git2kube/cmd.Version=${CACHE_TAG}
+RUN CGO_ENABLED=0 GOOS=linux go build -v -ldflags '-w -s -X 'github.com/wandera/git2kube/cmd.Version=${CACHE_TAG}
 
 # Runtime image
 FROM alpine:3.8

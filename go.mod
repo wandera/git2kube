@@ -1,4 +1,4 @@
-module github.com/WanderaOrg/git2kube
+module github.com/wandera/git2kube
 
 require (
 	github.com/cpuguy83/go-md2man v1.0.8 // indirect

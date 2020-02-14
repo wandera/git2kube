@@ -16,12 +16,12 @@ func TestNewAuth(t *testing.T) {
 	}{
 		{
 			name:   "No Auth",
-			git:    "https://github.com/WanderaOrg/git2kube.git",
+			git:    "https://github.com/wandera/git2kube.git",
 			result: nil,
 		},
 		{
 			name: "Basic Auth",
-			git:  "https://test:testpass@github.com/WanderaOrg/git2kube.git",
+			git:  "https://test:testpass@github.com/wandera/git2kube.git",
 			result: &http.BasicAuth{
 				Username: "test",
 				Password: "testpass",
@@ -29,7 +29,7 @@ func TestNewAuth(t *testing.T) {
 		},
 		{
 			name: "SSH wit private key",
-			git:  "git@github.com:WanderaOrg/git2kube.git",
+			git:  "git@github.com:wandera/git2kube.git",
 			key:  "testdata/dummy.key",
 			result: &gitssh.PublicKeys{
 				User:   "git",
@@ -38,13 +38,13 @@ func TestNewAuth(t *testing.T) {
 		},
 		{
 			name:   "HTTP url with private key",
-			git:    "https://github.com/WanderaOrg/git2kube.git",
+			git:    "https://github.com/wandera/git2kube.git",
 			key:    "/tmp/i_am_not_here.key",
 			result: nil,
 		},
 		{
 			name:   "SSH url without private key",
-			git:    "git@github.com:WanderaOrg/git2kube.git",
+			git:    "git@github.com:wandera/git2kube.git",
 			result: nil,
 		},
 	}

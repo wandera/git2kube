@@ -43,9 +43,9 @@ before_deploy:
       GOOS=${PLATFORM%/*}
       GOARCH=${PLATFORM#*/}
       if [ "$GOOS" = "windows" ]; then
-        build_cmd="GOOS=$GOOS GOARCH=$GOARCH go build -o git2kube -ldflags '-w -s -X 'github.com/WanderaOrg/git2kube/cmd.Version=${TRAVIS_TAG}"
+        build_cmd="GOOS=$GOOS GOARCH=$GOARCH go build -o git2kube -ldflags '-w -s -X 'github.com/wandera/git2kube/cmd.Version=${TRAVIS_TAG}"
       else
-        build_cmd="CGO_ENABLED=0 GOOS=$GOOS GOARCH=$GOARCH go build -o git2kube -ldflags '-w -s -X 'github.com/WanderaOrg/git2kube/cmd.Version=${TRAVIS_TAG}"
+        build_cmd="CGO_ENABLED=0 GOOS=$GOOS GOARCH=$GOARCH go build -o git2kube -ldflags '-w -s -X 'github.com/wandera/git2kube/cmd.Version=${TRAVIS_TAG}"
       fi
       if ! eval $build_cmd; then
         echo "Failed building sample for $PLATFORM" && return 1

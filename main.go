@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/WanderaOrg/git2kube/cmd"
 	log "github.com/sirupsen/logrus"
+	"github.com/wandera/git2kube/cmd"
 	"os"
 )
 

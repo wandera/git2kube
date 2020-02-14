@@ -17,7 +17,7 @@ Runs watcher that periodically check the provided repository
   -h, --help                      help for watch
       --include strings           regex that if is a match includes the file in the upload, example: '*.yaml' or 'folder/*' if you want to match a folder (default [.*])
   -i, --interval int              interval in seconds in which to try refreshing ConfigMap from git (default 10)
-  -p, --ssh-key string            path to the SSH private key (git repository address should be 'git@<address>', example: git@github.com:WanderaOrg/git2kube.git)
+  -p, --ssh-key string            path to the SSH private key (git repository address should be 'git@<address>', example: git@github.com:wandera/git2kube.git)
 ```
 
 ### Options inherited from parent commands
