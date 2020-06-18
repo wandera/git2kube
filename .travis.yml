@@ -1,6 +1,6 @@
 language: go
 go:
-- "1.12.5"
+- "1.14.3"
 - "master"
 
 notifications:

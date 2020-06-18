@@ -1,20 +1,19 @@
-## git2kube gendoc
+## git2kube version
 
-Generates documentation for this tool in Markdown format
+Print the version information
 
 ### Synopsis
 
-Generates documentation for this tool in Markdown format
+Print the version information
 
 ```
-git2kube gendoc [flags]
+git2kube version [flags]
 ```
 
 ### Options
 
 ```
-  -d, --destination string   destination for documentation
-  -h, --help                 help for gendoc
+  -h, --help   help for version
 ```
 
 ### Options inherited from parent commands

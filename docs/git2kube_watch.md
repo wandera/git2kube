@@ -23,7 +23,7 @@ Runs watcher that periodically check the provided repository
 ### Options inherited from parent commands
 
 ```
-  -l, --log-level string   command log level (options: [panic fatal error warning info debug]) (default "info")
+  -l, --log-level string   command log level (options: [panic fatal error warning info debug trace]) (default "info")
 ```
 
 ### SEE ALSO
