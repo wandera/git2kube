@@ -1,5 +1,5 @@
 # Builder image
-FROM golang:1.12.5 AS builder
+FROM golang:1.14.3 AS builder
 
 WORKDIR /build
 
@@ -11,7 +11,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -v -ldflags '-w -s -X 'github.com/wandera/git2kube/cmd.Version=${CACHE_TAG}
 
 # Runtime image
-FROM alpine:3.8
+FROM alpine:3.12
 RUN apk --no-cache add ca-certificates
 
 RUN apk --no-cache --virtual .openssh add openssh \
