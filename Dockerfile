@@ -1,16 +1,12 @@
 # Builder image
-FROM golang:1.20.1 AS builder
+FROM golang:1.20.1-alpine3.17 AS builder
 
 WORKDIR /build
-COPY go.mod go.sum ./
-RUN go mod download
 
-# Docker Cloud args, from hooks/build.
 ARG VERSION
-ENV VERSION ${VERSION}
 
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -v -ldflags '-w -s -X 'github.com/wandera/git2kube/cmd.Version=${VERSION}
+RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build GOMODCACHE=/go/pkg/mod GOCACHE=/root/.cache/go-build go build -v -ldflags '-w -s -X 'github.com/wandera/git2kube/cmd.Version=${VERSION}
 
 # Runtime image
 FROM alpine:3.17.3

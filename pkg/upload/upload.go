@@ -1,6 +1,7 @@
 package upload
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -174,7 +175,7 @@ func (u *configmapUploader) Upload(commitID string, iter FileIter) error {
 		return err
 	}
 
-	oldMap, err := configMaps.Get(u.name, metav1.GetOptions{})
+	oldMap, err := configMaps.Get(context.TODO(), u.name, metav1.GetOptions{})
 	if err == nil {
 		err = u.patchConfigMap(oldMap, configMaps, data, commitID)
 		if err != nil {
@@ -233,7 +234,7 @@ func (u *configmapUploader) patchConfigMap(oldMap *corev1.ConfigMap, configMaps 
 		return err
 	}
 
-	_, err = configMaps.Patch(u.name, types.StrategicMergePatchType, patchBytes)
+	_, err = configMaps.Patch(context.TODO(), u.name, types.StrategicMergePatchType, patchBytes, metav1.PatchOptions{})
 	if err != nil {
 		return err
 	}
@@ -248,15 +249,19 @@ func (u *configmapUploader) createConfigMap(configMaps typedcore.ConfigMapInterf
 	annotations := u.annotations
 	annotations[refAnnotation] = commitID
 
-	_, err := configMaps.Create(&corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        u.name,
-			Namespace:   u.namespace,
-			Annotations: annotations,
-			Labels:      u.labels,
+	_, err := configMaps.Create(
+		context.TODO(),
+		&corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:        u.name,
+				Namespace:   u.namespace,
+				Annotations: annotations,
+				Labels:      u.labels,
+			},
+			Data: data,
 		},
-		Data: data,
-	})
+		metav1.CreateOptions{},
+	)
 	if err != nil {
 		return err
 	}
@@ -335,7 +340,7 @@ func (u *secretUploader) Upload(commitID string, iter FileIter) error {
 		return err
 	}
 
-	oldSecret, err := secrets.Get(u.name, metav1.GetOptions{})
+	oldSecret, err := secrets.Get(context.TODO(), u.name, metav1.GetOptions{})
 	if err == nil {
 		err = u.patchSecret(oldSecret, secrets, data, commitID)
 		if err != nil {
@@ -394,7 +399,7 @@ func (u *secretUploader) patchSecret(oldSecret *corev1.Secret, secrets typedcore
 		return err
 	}
 
-	_, err = secrets.Patch(u.name, types.StrategicMergePatchType, patchBytes)
+	_, err = secrets.Patch(context.TODO(), u.name, types.StrategicMergePatchType, patchBytes, metav1.PatchOptions{})
 	if err != nil {
 		return err
 	}
@@ -409,15 +414,19 @@ func (u *secretUploader) createSecret(secrets typedcore.SecretInterface, data ma
 	annotations := u.annotations
 	annotations[refAnnotation] = commitID
 
-	_, err := secrets.Create(&corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        u.name,
-			Namespace:   u.namespace,
-			Annotations: annotations,
-			Labels:      u.labels,
+	_, err := secrets.Create(
+		context.TODO(),
+		&corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:        u.name,
+				Namespace:   u.namespace,
+				Annotations: annotations,
+				Labels:      u.labels,
+			},
+			Data: data,
 		},
-		Data: data,
-	})
+		metav1.CreateOptions{},
+	)
 	if err != nil {
 		return err
 	}

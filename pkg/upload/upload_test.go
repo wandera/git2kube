@@ -1,6 +1,7 @@
 package upload
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -156,7 +157,7 @@ func TestConfigmapUploader_Upload(t *testing.T) {
 
 		assertAction(fakeclient.Actions()[0], t, c.name, c.namespace, "get", "configmaps")
 		assertAction(fakeclient.Actions()[1], t, c.name, c.namespace, "create", "configmaps")
-		res, err := fakeclient.CoreV1().ConfigMaps(c.namespace).Get(c.target, v1.GetOptions{})
+		res, err := fakeclient.CoreV1().ConfigMaps(c.namespace).Get(context.TODO(), c.target, v1.GetOptions{})
 		if err != nil {
 			t.Errorf("%s case failed: %v", c.name, err)
 		}
@@ -185,7 +186,7 @@ func TestSecretUploader_Upload(t *testing.T) {
 		assertAction(fakeclient.Actions()[0], t, c.name, c.namespace, "get", "secrets")
 		assertAction(fakeclient.Actions()[1], t, c.name, c.namespace, "create", "secrets")
 
-		res, err := fakeclient.CoreV1().Secrets(c.namespace).Get(c.target, v1.GetOptions{})
+		res, err := fakeclient.CoreV1().Secrets(c.namespace).Get(context.TODO(), c.target, v1.GetOptions{})
 		if err != nil {
 			t.Errorf("%s case failed: %v", c.name, err)
 		}
