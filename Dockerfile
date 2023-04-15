@@ -1,5 +1,5 @@
 # Builder image
-FROM golang:1.14.3 AS builder
+FROM golang:1.20.1 AS builder
 
 WORKDIR /build
 COPY go.mod go.sum ./
@@ -13,7 +13,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -v -ldflags '-w -s -X 'github.com/wandera/git2kube/cmd.Version=${CACHE_TAG}
 
 # Runtime image
-FROM alpine:3.12
+FROM alpine:3.17.3
 RUN apk --no-cache add ca-certificates
 
 RUN apk --no-cache --virtual .openssh add openssh \
