@@ -1,11 +1,12 @@
 package cmd
 
 import (
+	"os"
+
 	"github.com/spf13/cobra"
 	"github.com/wandera/git2kube/pkg/cmd"
 	"github.com/wandera/git2kube/pkg/fetch"
 	"github.com/wandera/git2kube/pkg/upload"
-	"os"
 )
 
 var lp = struct {

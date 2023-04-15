@@ -1,7 +1,6 @@
 package upload
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -23,7 +22,7 @@ type mockFileIter struct {
 func (m *mockFileIter) ForEach(cb func(*object.File) error) error {
 	for _, f := range m.files {
 		obj := &plumbing.MemoryObject{}
-		content, err := ioutil.ReadFile(filepath.Join("testdata", f.Name))
+		content, err := os.ReadFile(filepath.Join("testdata", f.Name))
 		if err != nil {
 			panic(err)
 		}
@@ -90,7 +89,7 @@ var basicCases = []struct {
 			regexp.MustCompile(".*"),
 		},
 		excludes: []*regexp.Regexp{
-			regexp.MustCompile(".*\\.yaml"),
+			regexp.MustCompile(`.*\.yaml`),
 		},
 		iter: &mockFileIter{
 			files: []*object.File{
@@ -247,7 +246,7 @@ func assertData(data map[string]string, t *testing.T, name string, contains []st
 
 	for _, k := range contains {
 		if v, ok := data[k]; ok {
-			content, _ := ioutil.ReadFile(filepath.Join("testdata", k))
+			content, _ := os.ReadFile(filepath.Join("testdata", k))
 			if v != string(content) {
 				t.Errorf("%s case failed: content mismatch expected '%s' but got '%s' instead", name, content, v)
 			}
