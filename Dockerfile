@@ -6,11 +6,11 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 # Docker Cloud args, from hooks/build.
-ARG CACHE_TAG
-ENV CACHE_TAG ${CACHE_TAG}
+ARG VERSION
+ENV VERSION ${VERSION}
 
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -v -ldflags '-w -s -X 'github.com/wandera/git2kube/cmd.Version=${CACHE_TAG}
+RUN CGO_ENABLED=0 GOOS=linux go build -v -ldflags '-w -s -X 'github.com/wandera/git2kube/cmd.Version=${VERSION}
 
 # Runtime image
 FROM alpine:3.17.3
