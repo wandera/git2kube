@@ -2,10 +2,6 @@
 
 Loads files from git repository into ConfigMap
 
-### Synopsis
-
-Loads files from git repository into ConfigMap
-
 ```
 git2kube load configmap [flags]
 ```

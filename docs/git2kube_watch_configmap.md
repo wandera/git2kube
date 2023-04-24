@@ -2,10 +2,6 @@
 
 Runs watcher that periodically check the provided repository and updates K8s ConfigMap accordingly
 
-### Synopsis
-
-Runs watcher that periodically check the provided repository and updates K8s ConfigMap accordingly
-
 ```
 git2kube watch configmap [flags]
 ```

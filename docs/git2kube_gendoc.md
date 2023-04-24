@@ -2,10 +2,6 @@
 
 Generates documentation for this tool in Markdown format
 
-### Synopsis
-
-Generates documentation for this tool in Markdown format
-
 ```
 git2kube gendoc [flags]
 ```

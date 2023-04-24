@@ -2,10 +2,6 @@
 
 Loads files from git repository into Folder
 
-### Synopsis
-
-Loads files from git repository into Folder
-
 ```
 git2kube load folder [flags]
 ```

@@ -15,6 +15,7 @@ Commandline tool for loading files from git repository into K8s ConfigMap
 
 ### SEE ALSO
 
+* [git2kube completion](git2kube_completion.md)	 - Generate the autocompletion script for the specified shell
 * [git2kube gendoc](git2kube_gendoc.md)	 - Generates documentation for this tool in Markdown format
 * [git2kube load](git2kube_load.md)	 - Loads files from git repository into target
 * [git2kube version](git2kube_version.md)	 - Print the version information

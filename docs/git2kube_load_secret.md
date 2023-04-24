@@ -2,10 +2,6 @@
 
 Loads files from git repository into Secret
 
-### Synopsis
-
-Loads files from git repository into Secret
-
 ```
 git2kube load secret [flags]
 ```

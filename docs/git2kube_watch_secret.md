@@ -2,10 +2,6 @@
 
 Runs watcher that periodically check the provided repository and updates K8s Secret accordingly
 
-### Synopsis
-
-Runs watcher that periodically check the provided repository and updates K8s Secret accordingly
-
 ```
 git2kube watch secret [flags]
 ```
