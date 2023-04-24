@@ -1,0 +1,38 @@
+name: Release
+
+on:
+  push:
+    tags:
+    - "v*.*.*"
+
+env:
+  TAG: ${{ github.ref_name }}
+
+jobs:
+  release-binary:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [linux, darwin]
+        goarch: [arm64, amd64]
+    steps:
+    - name: Checkout the latest code
+      uses: actions/checkout@v3
+    - name: Install Go
+      uses: actions/setup-go@v4
+      with:
+        go-version-file: go.mod
+    - name: Build ${{ matrix.goos }}/${{ matrix.goarch }}
+      env:
+        GOOS: ${{ matrix.goos }}
+        GOARCH: ${{ matrix.goarch }}
+      shell: bash
+      run: |
+        GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o git2kube -ldflags '-w -s -X 'github.com/wandera/git2kube/cmd.Version=${{ env.TAG }} \
+          && mkdir dist               \
+          && mv git2kube dist/git2kube  \
+          && tar -czvf git2kube-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz -C dist/ .
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: git2kube-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz

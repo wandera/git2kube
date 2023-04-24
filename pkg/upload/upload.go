@@ -1,13 +1,20 @@
 package upload
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"os"
+	"path"
+	"path/filepath"
+	"regexp"
+	"strings"
+
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/imdario/mergo"
 	log "github.com/sirupsen/logrus"
-	"io"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -16,30 +23,27 @@ import (
 	typedcore "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"os"
-	"path"
-	"path/filepath"
-	"regexp"
-	"strings"
 )
 
-const refAnnotation = "git2kube.github.com/ref"
-const bufferSize = 1024
+const (
+	refAnnotation = "git2kube.github.com/ref"
+	bufferSize    = 1024
+)
 
-// LoadType upload type
+// LoadType upload type.
 type LoadType int
 
-// MergeType how to merge ConfigMap data
+// MergeType how to merge ConfigMap data.
 type MergeType string
 
 const (
-	// Delete merge all keys (files) including removal of missing keys
+	// Delete merge all keys (files) including removal of missing keys.
 	Delete MergeType = "delete"
-	// Upsert merge all keys (files) but don't remove missing keys from the repository
-	Upsert MergeType = "upsert"
+	// Upsert merge all keys (files) but don't remove missing keys from the repository.
+	Upsert = "upsert"
 )
 
-// LoadType options enum
+// LoadType options enum.
 const (
 	ConfigMap LoadType = iota
 	Secret
@@ -51,10 +55,10 @@ type FileIter interface {
 	ForEach(cb func(*object.File) error) error
 }
 
-// UploaderFactory factory constructing Uploaders
+// UploaderFactory factory constructing Uploaders.
 type UploaderFactory func(o UploaderOptions) (Uploader, error)
 
-// Uploader uploading data to target
+// Uploader uploading data to target.
 type Uploader interface {
 	// Upload files into config map tagged by commitID
 	Upload(commitID string, iter FileIter) error
@@ -73,7 +77,9 @@ type uploader struct {
 }
 
 type configmapUploader uploader
+
 type secretUploader uploader
+
 type folderUploader struct {
 	name       string
 	includes   []*regexp.Regexp
@@ -81,7 +87,7 @@ type folderUploader struct {
 	sourcePath string
 }
 
-// UploaderOptions uploader options
+// UploaderOptions uploader options.
 type UploaderOptions struct {
 	Kubeconfig  bool
 	Source      string
@@ -104,7 +110,7 @@ func register(loadType LoadType, factory UploaderFactory) {
 	uploaderFactories[loadType] = factory
 }
 
-// NewUploader create uploader of specific type
+// NewUploader create uploader of specific type.
 func NewUploader(lt LoadType, o UploaderOptions) (Uploader, error) {
 	engineFactory, ok := uploaderFactories[lt]
 	if !ok {
@@ -169,7 +175,7 @@ func (u *configmapUploader) Upload(commitID string, iter FileIter) error {
 		return err
 	}
 
-	oldMap, err := configMaps.Get(u.name, metav1.GetOptions{})
+	oldMap, err := configMaps.Get(context.TODO(), u.name, metav1.GetOptions{})
 	if err == nil {
 		err = u.patchConfigMap(oldMap, configMaps, data, commitID)
 		if err != nil {
@@ -228,7 +234,7 @@ func (u *configmapUploader) patchConfigMap(oldMap *corev1.ConfigMap, configMaps 
 		return err
 	}
 
-	_, err = configMaps.Patch(u.name, types.StrategicMergePatchType, patchBytes)
+	_, err = configMaps.Patch(context.TODO(), u.name, types.StrategicMergePatchType, patchBytes, metav1.PatchOptions{})
 	if err != nil {
 		return err
 	}
@@ -243,15 +249,19 @@ func (u *configmapUploader) createConfigMap(configMaps typedcore.ConfigMapInterf
 	annotations := u.annotations
 	annotations[refAnnotation] = commitID
 
-	_, err := configMaps.Create(&corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        u.name,
-			Namespace:   u.namespace,
-			Annotations: annotations,
-			Labels:      u.labels,
+	_, err := configMaps.Create(
+		context.TODO(),
+		&corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:        u.name,
+				Namespace:   u.namespace,
+				Annotations: annotations,
+				Labels:      u.labels,
+			},
+			Data: data,
 		},
-		Data: data,
-	})
+		metav1.CreateOptions{},
+	)
 	if err != nil {
 		return err
 	}
@@ -261,7 +271,7 @@ func (u *configmapUploader) createConfigMap(configMaps typedcore.ConfigMapInterf
 }
 
 func (u *configmapUploader) iterToConfigMapData(iter FileIter) (map[string]string, error) {
-	var data = make(map[string]string)
+	data := make(map[string]string)
 	err := iter.ForEach(func(file *object.File) error {
 		if filterFile(file, u.includes, u.excludes) {
 			content, err := file.Contents()
@@ -330,7 +340,7 @@ func (u *secretUploader) Upload(commitID string, iter FileIter) error {
 		return err
 	}
 
-	oldSecret, err := secrets.Get(u.name, metav1.GetOptions{})
+	oldSecret, err := secrets.Get(context.TODO(), u.name, metav1.GetOptions{})
 	if err == nil {
 		err = u.patchSecret(oldSecret, secrets, data, commitID)
 		if err != nil {
@@ -389,7 +399,7 @@ func (u *secretUploader) patchSecret(oldSecret *corev1.Secret, secrets typedcore
 		return err
 	}
 
-	_, err = secrets.Patch(u.name, types.StrategicMergePatchType, patchBytes)
+	_, err = secrets.Patch(context.TODO(), u.name, types.StrategicMergePatchType, patchBytes, metav1.PatchOptions{})
 	if err != nil {
 		return err
 	}
@@ -404,15 +414,19 @@ func (u *secretUploader) createSecret(secrets typedcore.SecretInterface, data ma
 	annotations := u.annotations
 	annotations[refAnnotation] = commitID
 
-	_, err := secrets.Create(&corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        u.name,
-			Namespace:   u.namespace,
-			Annotations: annotations,
-			Labels:      u.labels,
+	_, err := secrets.Create(
+		context.TODO(),
+		&corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:        u.name,
+				Namespace:   u.namespace,
+				Annotations: annotations,
+				Labels:      u.labels,
+			},
+			Data: data,
 		},
-		Data: data,
-	})
+		metav1.CreateOptions{},
+	)
 	if err != nil {
 		return err
 	}
@@ -422,7 +436,7 @@ func (u *secretUploader) createSecret(secrets typedcore.SecretInterface, data ma
 }
 
 func (u *secretUploader) iterToSecretData(iter FileIter) (map[string][]byte, error) {
-	var data = make(map[string][]byte)
+	data := make(map[string][]byte)
 	err := iter.ForEach(func(file *object.File) error {
 		if filterFile(file, u.includes, u.excludes) {
 			content, err := file.Contents()
@@ -486,7 +500,7 @@ func (u *folderUploader) Upload(commitID string, iter FileIter) error {
 			defer source.Close()
 
 			if dir, _ := filepath.Split(dst); dir != "" {
-				err = os.MkdirAll(dir, 0777)
+				err = os.MkdirAll(dir, 0o777)
 				if err != nil {
 					return err
 				}
@@ -514,6 +528,9 @@ func (u *folderUploader) Upload(commitID string, iter FileIter) error {
 		}
 		return nil
 	})
+	if err != nil {
+		return err
+	}
 
 	err = filepath.Walk(u.name, func(path string, info os.FileInfo, err error) error {
 		if _, exists := filesToKeep[path]; info != nil && !info.IsDir() && !exists {

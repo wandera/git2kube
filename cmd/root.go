@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -33,7 +34,7 @@ func init() {
 	rootCmd.AddCommand(versionCmd)
 }
 
-//Execute run root command (main entrypoint)
+// Execute run root command (main entrypoint).
 func Execute() error {
 	return rootCmd.Execute()
 }

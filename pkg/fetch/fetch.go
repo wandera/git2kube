@@ -3,6 +3,10 @@ package fetch
 import (
 	"errors"
 	"fmt"
+	"io"
+	"os"
+	"strings"
+
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
@@ -11,12 +15,9 @@ import (
 	gitssh "github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
-	"io/ioutil"
-	"os"
-	"strings"
 )
 
-// Fetcher fetching data from remote
+// Fetcher fetching data from remote.
 type Fetcher interface {
 	Fetch() (*object.Commit, error)
 }
@@ -28,7 +29,7 @@ type fetcher struct {
 	auth      transport.AuthMethod
 }
 
-// NewFetcher creates new Fetcher
+// NewFetcher creates new Fetcher.
 func NewFetcher(url string, directory string, branch string, auth transport.AuthMethod) Fetcher {
 	fetcher := &fetcher{
 		url:       url,
@@ -39,7 +40,7 @@ func NewFetcher(url string, directory string, branch string, auth transport.Auth
 	return fetcher
 }
 
-// Fetch from remote
+// Fetch from remote.
 func (f *fetcher) Fetch() (*object.Commit, error) {
 	err := os.RemoveAll(f.directory)
 	if err != nil {
@@ -74,7 +75,7 @@ func (f *fetcher) Fetch() (*object.Commit, error) {
 	return commit, nil
 }
 
-// NewAuth creates new AuthMethod based on URI
+// NewAuth creates new AuthMethod based on URI.
 func NewAuth(git string, sshkey string) (transport.AuthMethod, error) {
 	var auth transport.AuthMethod
 
@@ -89,7 +90,7 @@ func NewAuth(git string, sshkey string) (transport.AuthMethod, error) {
 		if err != nil {
 			return nil, errors.New("Couldn't open SSH key: " + err.Error())
 		}
-		sshB, err := ioutil.ReadAll(sshFile)
+		sshB, err := io.ReadAll(sshFile)
 		if err != nil {
 			return nil, errors.New("Couldn't read SSH key: " + err.Error())
 		}

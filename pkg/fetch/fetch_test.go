@@ -1,10 +1,11 @@
 package fetch
 
 import (
+	"testing"
+
 	"github.com/go-git/go-git/v5/plumbing/transport"
 	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	gitssh "github.com/go-git/go-git/v5/plumbing/transport/ssh"
-	"testing"
 )
 
 func TestNewAuth(t *testing.T) {

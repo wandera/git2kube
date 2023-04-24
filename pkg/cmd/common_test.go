@@ -1,10 +1,11 @@
 package cmd
 
 import (
-	"github.com/spf13/cobra"
 	"os"
 	"reflect"
 	"testing"
+
+	"github.com/spf13/cobra"
 )
 
 func TestExpandArgs(t *testing.T) {

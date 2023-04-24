@@ -1,24 +1,24 @@
 package cmd
 
 import (
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
-	"github.com/wandera/git2kube/pkg/cmd"
-	"github.com/wandera/git2kube/pkg/fetch"
-	"github.com/wandera/git2kube/pkg/upload"
-	"io/ioutil"
 	"os"
 	"os/signal"
 	"path"
 	"syscall"
 	"time"
+
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+	"github.com/wandera/git2kube/pkg/cmd"
+	"github.com/wandera/git2kube/pkg/fetch"
+	"github.com/wandera/git2kube/pkg/upload"
 )
 
 type healthCheckStatus string
 
 const (
 	ok  healthCheckStatus = "OK"
-	nok                   = "NOK"
+	nok healthCheckStatus = "NOK"
 )
 
 var wp = struct {
@@ -167,7 +167,7 @@ func writeHealthCheck(status healthCheckStatus) {
 				log.Errorf("Unable to create healthcheck folder")
 			}
 
-			err = ioutil.WriteFile(wp.healthCheckFile, []byte(status), 0644)
+			err = os.WriteFile(wp.healthCheckFile, []byte(status), 0o600)
 			if err != nil {
 				log.Errorf("Unable to write healthcheck file")
 			}

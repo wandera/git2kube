@@ -1,7 +1,7 @@
 package upload
 
 import (
-	"io/ioutil"
+	"context"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -23,7 +23,7 @@ type mockFileIter struct {
 func (m *mockFileIter) ForEach(cb func(*object.File) error) error {
 	for _, f := range m.files {
 		obj := &plumbing.MemoryObject{}
-		content, err := ioutil.ReadFile(filepath.Join("testdata", f.Name))
+		content, err := os.ReadFile(filepath.Join("testdata", f.Name))
 		if err != nil {
 			panic(err)
 		}
@@ -90,7 +90,7 @@ var basicCases = []struct {
 			regexp.MustCompile(".*"),
 		},
 		excludes: []*regexp.Regexp{
-			regexp.MustCompile(".*\\.yaml"),
+			regexp.MustCompile(`.*\.yaml`),
 		},
 		iter: &mockFileIter{
 			files: []*object.File{
@@ -157,7 +157,7 @@ func TestConfigmapUploader_Upload(t *testing.T) {
 
 		assertAction(fakeclient.Actions()[0], t, c.name, c.namespace, "get", "configmaps")
 		assertAction(fakeclient.Actions()[1], t, c.name, c.namespace, "create", "configmaps")
-		res, err := fakeclient.CoreV1().ConfigMaps(c.namespace).Get(c.target, v1.GetOptions{})
+		res, err := fakeclient.CoreV1().ConfigMaps(c.namespace).Get(context.TODO(), c.target, v1.GetOptions{})
 		if err != nil {
 			t.Errorf("%s case failed: %v", c.name, err)
 		}
@@ -186,7 +186,7 @@ func TestSecretUploader_Upload(t *testing.T) {
 		assertAction(fakeclient.Actions()[0], t, c.name, c.namespace, "get", "secrets")
 		assertAction(fakeclient.Actions()[1], t, c.name, c.namespace, "create", "secrets")
 
-		res, err := fakeclient.CoreV1().Secrets(c.namespace).Get(c.target, v1.GetOptions{})
+		res, err := fakeclient.CoreV1().Secrets(c.namespace).Get(context.TODO(), c.target, v1.GetOptions{})
 		if err != nil {
 			t.Errorf("%s case failed: %v", c.name, err)
 		}
@@ -247,7 +247,7 @@ func assertData(data map[string]string, t *testing.T, name string, contains []st
 
 	for _, k := range contains {
 		if v, ok := data[k]; ok {
-			content, _ := ioutil.ReadFile(filepath.Join("testdata", k))
+			content, _ := os.ReadFile(filepath.Join("testdata", k))
 			if v != string(content) {
 				t.Errorf("%s case failed: content mismatch expected '%s' but got '%s' instead", name, content, v)
 			}
