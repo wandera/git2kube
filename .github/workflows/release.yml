@@ -7,6 +7,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
+  BINARY_NAME: ${{ github.repository }}
   IMAGE_NAME: ${{ github.repository }}
   TAG: ${{ github.ref_name }}
 
@@ -30,14 +31,14 @@ jobs:
         GOARCH: ${{ matrix.goarch }}
       shell: bash
       run: |
-        GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o git2kube -ldflags '-w -s -X 'github.com/wandera/git2kube/cmd.Version=${{ env.TAG }} \
+        GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o ${{ env.BINARY_NAME }} -ldflags '-w -s -X 'github.com/wandera/${{ env.BINARY_NAME }}/cmd.Version=${{ env.TAG }} \
           && mkdir dist               \
-          && mv git2kube dist/git2kube  \
-          && tar -czvf git2kube-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz -C dist/ .
+          && mv ${{ env.BINARY_NAME }} dist/${{ env.BINARY_NAME }}  \
+          && tar -czvf ${{ env.BINARY_NAME }}-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz -C dist/ .
     - name: Release
       uses: wandera/action-gh-release@v1
       with:
-        files: git2kube-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz
+        files: ${{ env.BINARY_NAME }}-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz
 
   release-docker-image:
     runs-on: ubuntu-latest

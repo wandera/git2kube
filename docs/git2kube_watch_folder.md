@@ -2,10 +2,6 @@
 
 Runs watcher that periodically check the provided repository and updates target folder accordingly
 
-### Synopsis
-
-Runs watcher that periodically check the provided repository and updates target folder accordingly
-
 ```
 git2kube watch folder [flags]
 ```

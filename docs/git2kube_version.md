@@ -2,10 +2,6 @@
 
 Print the version information
 
-### Synopsis
-
-Print the version information
-
 ```
 git2kube version [flags]
 ```

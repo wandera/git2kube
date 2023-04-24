@@ -1,3 +1,0 @@
-#!/bin/bash
-
-docker build -t $IMAGE_NAME . --build-arg CACHE_TAG=${IMAGE_NAME#*:}

@@ -2,10 +2,6 @@
 
 Runs watcher that periodically check the provided repository
 
-### Synopsis
-
-Runs watcher that periodically check the provided repository
-
 ### Options
 
 ```

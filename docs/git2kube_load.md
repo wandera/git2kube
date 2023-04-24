@@ -2,10 +2,6 @@
 
 Loads files from git repository into target
 
-### Synopsis
-
-Loads files from git repository into target
-
 ### Options
 
 ```
