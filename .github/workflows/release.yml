@@ -35,7 +35,7 @@ jobs:
           && mv git2kube dist/git2kube  \
           && tar -czvf git2kube-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz -C dist/ .
     - name: Release
-      uses: softprops/action-gh-release@v1
+      uses: wandera/action-gh-release@v1
       with:
         files: git2kube-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz
 
