@@ -69,7 +69,7 @@ spec:
           serviceAccountName: git2kube-watcher
           containers:
           - name: git2kube-prometheus-rules
-            image: wanderadock/git2kube
+            image: ghcr.io/wandera/git2kube
             args:
             - 'load'
             - 'configmap'

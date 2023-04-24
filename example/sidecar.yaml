@@ -28,7 +28,7 @@ spec:
           name: rules
           readOnly: true
       - name: git2kube-prometheus-rules
-        image: wanderadock/git2kube
+        image: ghcr.io/wandera/git2kube
         args:
         - 'watch'
         - 'folder'
