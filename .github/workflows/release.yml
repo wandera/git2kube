@@ -7,7 +7,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  BINARY_NAME: ${{ github.repository }}
+  BINARY_NAME: ${{ github.event.repository.name }}
   IMAGE_NAME: ${{ github.repository }}
   TAG: ${{ github.ref_name }}
 
