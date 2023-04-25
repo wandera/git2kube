@@ -16,8 +16,11 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        goos: [linux, darwin]
-        goarch: [arm64, amd64]
+        goos: [linux, windows, darwin]
+        goarch: [386, arm64, amd64]
+        exclude:
+        - goarch: "386"
+          goos: darwin
     steps:
     - name: Checkout the latest code
       uses: actions/checkout@v3
@@ -31,10 +34,12 @@ jobs:
         GOARCH: ${{ matrix.goarch }}
       shell: bash
       run: |
-        GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o ${{ env.BINARY_NAME }} -ldflags '-w -s -X 'github.com/wandera/${{ env.BINARY_NAME }}/cmd.Version=${{ env.TAG }} \
-          && mkdir dist               \
-          && mv ${{ env.BINARY_NAME }} dist/${{ env.BINARY_NAME }}  \
-          && tar -czvf ${{ env.BINARY_NAME }}-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz -C dist/ .
+        if [ "$GOOS" = "windows" ]; then
+          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o dist/${{ env.BINARY_NAME }}.exe -ldflags '-w -s -X 'github.com/wandera/${{ env.BINARY_NAME }}/cmd.Version=${{ env.TAG }}
+        else
+          CGO_ENABLED=0 GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o dist/${{ env.BINARY_NAME }} -ldflags '-w -s -X 'github.com/wandera/${{ env.BINARY_NAME }}/cmd.Version=${{ env.TAG }}
+        fi
+        tar -czvf ${{ env.BINARY_NAME }}-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz -C dist/ .
     - name: Release
       uses: wandera/action-gh-release@v1
       with:
