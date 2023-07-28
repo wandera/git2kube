@@ -8,9 +8,9 @@ require (
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/cobra v1.7.0
 	golang.org/x/crypto v0.8.0
-	k8s.io/api v0.27.1
+	k8s.io/api v0.27.4
 	k8s.io/apimachinery v0.27.4
-	k8s.io/client-go v0.27.1
+	k8s.io/client-go v0.27.4
 )
 
 require (
