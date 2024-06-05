@@ -12,8 +12,8 @@ import (
 	"regexp"
 	"strings"
 
+	"dario.cat/mergo"
 	"github.com/go-git/go-git/v5/plumbing/object"
-	"github.com/imdario/mergo"
 	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
