@@ -1,5 +1,5 @@
 # Builder image
-FROM golang:1.22.4-alpine3.20 AS builder
+FROM golang:1.23.4-alpine3.21 AS builder
 
 WORKDIR /build
 
@@ -9,7 +9,7 @@ COPY . .
 RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build GOMODCACHE=/go/pkg/mod GOCACHE=/root/.cache/go-build go build -v -ldflags '-w -s -X 'github.com/wandera/git2kube/cmd.Version=${VERSION}
 
 # Runtime image
-FROM alpine:3.20.0
+FROM alpine:3.21.0
 RUN apk --no-cache add ca-certificates
 
 RUN apk --no-cache --virtual .openssh add openssh \
