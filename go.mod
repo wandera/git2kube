@@ -6,7 +6,7 @@ toolchain go1.23.4
 
 require (
 	dario.cat/mergo v1.0.1
-	github.com/go-git/go-git/v5 v5.12.0
+	github.com/go-git/go-git/v5 v5.13.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.1
 	golang.org/x/crypto v0.31.0
