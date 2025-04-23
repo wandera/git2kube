@@ -15,4 +15,4 @@ jobs:
     - name: Lint
       uses: wandera/golangci-lint-action@v5
       with:
-        version: v1.62.2
+        version: v1.64.8
