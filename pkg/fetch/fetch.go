@@ -86,7 +86,7 @@ func NewAuth(git string, sshkey string) (transport.AuthMethod, error) {
 
 	if strings.HasPrefix(ep.Protocol, "ssh") && sshkey != "" {
 		var signer ssh.Signer
-		sshFile, err := os.Open(sshkey)
+		sshFile, err := os.Open(sshkey) // #nosec G304
 		if err != nil {
 			return nil, errors.New("Couldn't open SSH key: " + err.Error())
 		}

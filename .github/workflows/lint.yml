@@ -13,6 +13,6 @@ jobs:
         cache: false
         go-version-file: go.mod
     - name: Lint
-      uses: wandera/golangci-lint-action@v5
+      uses: golangci/golangci-lint-action@v8
       with:
-        version: v1.64.8
+        version: v2.1
