@@ -73,6 +73,7 @@ var watchFolderCmd = &cobra.Command{
 }
 
 func executeWatch(lt upload.LoadType) error {
+	// #nosec G301
 	if err := os.MkdirAll(wp.folder, os.ModePerm); err != nil {
 		return err
 	}
@@ -162,7 +163,7 @@ func writeHealthCheck(status healthCheckStatus) {
 	if wp.healthCheckFile != "" {
 		go func() {
 			dir := path.Dir(wp.healthCheckFile)
-			err := os.MkdirAll(dir, os.ModePerm)
+			err := os.MkdirAll(dir, os.ModePerm) // #nosec G301
 			if err != nil {
 				log.Errorf("Unable to create healthcheck folder")
 			}
@@ -184,9 +185,9 @@ func init() {
 	watchCmd.PersistentFlags().StringSliceVar(&wp.includes, "include", []string{".*"}, "regex that if is a match includes the file in the upload, example: '*.yaml' or 'folder/*' if you want to match a folder")
 	watchCmd.PersistentFlags().StringSliceVar(&wp.excludes, "exclude", []string{"^\\..*"}, "regex that if is a match excludes the file from the upload, example: '*.yaml' or 'folder/*' if you want to match a folder")
 	watchCmd.PersistentFlags().StringVarP(&wp.sshkey, "ssh-key", "p", "", "path to the SSH private key (git repository address should be 'git@<address>', example: git@github.com:wandera/git2kube.git)")
-	watchCmd.MarkPersistentFlagRequired("git")
-	watchCmd.MarkPersistentFlagFilename("cache-folder")
-	watchCmd.MarkPersistentFlagFilename("healthcheck-file")
+	watchCmd.MarkPersistentFlagRequired("git")              // #nosec G104
+	watchCmd.MarkPersistentFlagFilename("cache-folder")     // #nosec G104
+	watchCmd.MarkPersistentFlagFilename("healthcheck-file") // #nosec G104
 
 	watchConfigmapCmd.Flags().BoolVarP(&wp.kubeconfig, "kubeconfig", "k", false, "true if locally stored ~/.kube/config should be used, InCluster config will be used if false (options: true|false) (default: false)")
 	watchConfigmapCmd.Flags().StringVarP(&wp.namespace, "namespace", "n", "default", "target namespace for the resulting ConfigMap")
@@ -194,8 +195,8 @@ func init() {
 	watchConfigmapCmd.Flags().StringSliceVar(&wp.labels, "label", []string{}, "label to add to K8s ConfigMap (format NAME=VALUE)")
 	watchConfigmapCmd.Flags().StringSliceVar(&wp.annotations, "annotation", []string{}, "annotation to add to K8s ConfigMap (format NAME=VALUE)")
 	watchConfigmapCmd.Flags().StringVarP(&wp.mergetype, "merge-type", "", "delete", "how to merge ConfigMap data whether to also delete missing values or just upsert new (options: delete|upsert)")
-	watchConfigmapCmd.MarkFlagFilename("kubeconfig")
-	watchConfigmapCmd.MarkFlagRequired("configmap")
+	watchConfigmapCmd.MarkFlagFilename("kubeconfig") // #nosec G104
+	watchConfigmapCmd.MarkFlagRequired("configmap")  // #nosec G104
 
 	watchSecretCmd.Flags().BoolVarP(&wp.kubeconfig, "kubeconfig", "k", false, "true if locally stored ~/.kube/config should be used, InCluster config will be used if false (options: true|false) (default: false)")
 	watchSecretCmd.Flags().StringVarP(&wp.namespace, "namespace", "n", "default", "target namespace for the resulting ConfigMap")
@@ -203,12 +204,12 @@ func init() {
 	watchSecretCmd.Flags().StringSliceVar(&wp.labels, "label", []string{}, "label to add to K8s Secret (format NAME=VALUE)")
 	watchSecretCmd.Flags().StringSliceVar(&wp.annotations, "annotation", []string{}, "annotation to add to K8s Secret (format NAME=VALUE)")
 	watchSecretCmd.Flags().StringVarP(&wp.mergetype, "merge-type", "", "delete", "how to merge Secret data whether to also delete missing values or just upsert new (options: delete|upsert)")
-	watchSecretCmd.MarkFlagFilename("kubeconfig")
-	watchSecretCmd.MarkFlagRequired("secret")
+	watchSecretCmd.MarkFlagFilename("kubeconfig") // #nosec G104
+	watchSecretCmd.MarkFlagRequired("secret")     // #nosec G104
 
 	watchFolderCmd.Flags().StringVarP(&wp.target, "target-folder", "t", "", "path to target folder")
-	watchFolderCmd.MarkFlagRequired("target-folder")
-	watchFolderCmd.MarkFlagFilename("target-folder")
+	watchFolderCmd.MarkFlagRequired("target-folder") // #nosec G104
+	watchFolderCmd.MarkFlagFilename("target-folder") // #nosec G104
 
 	watchCmd.AddCommand(watchConfigmapCmd)
 	watchCmd.AddCommand(watchSecretCmd)

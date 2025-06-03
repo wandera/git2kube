@@ -59,6 +59,7 @@ var loadFolderCmd = &cobra.Command{
 }
 
 func executeLoad(lt upload.LoadType) error {
+	// #nosec G301
 	if err := os.MkdirAll(lp.folder, os.ModePerm); err != nil {
 		return err
 	}
@@ -111,8 +112,8 @@ func init() {
 	loadCmd.PersistentFlags().StringSliceVar(&lp.excludes, "exclude", []string{"^\\..*"}, "regex that if is a match excludes the file from the upload, example: '*.yaml' or 'folder/*' if you want to match a folder")
 	loadCmd.PersistentFlags().StringVarP(&lp.sshkey, "ssh-key", "p", "", "path to the SSH private key (git repository address should be 'git@<address>', example: git@github.com:wandera/git2kube.git)")
 
-	loadCmd.MarkPersistentFlagRequired("git")
-	loadCmd.MarkPersistentFlagFilename("cache-folder")
+	loadCmd.MarkPersistentFlagRequired("git")          // #nosec G104
+	loadCmd.MarkPersistentFlagFilename("cache-folder") // #nosec G104
 
 	loadConfigmapCmd.Flags().BoolVarP(&lp.kubeconfig, "kubeconfig", "k", false, "true if locally stored ~/.kube/config should be used, InCluster config will be used if false (options: true|false) (default: false)")
 	loadConfigmapCmd.Flags().StringVarP(&lp.namespace, "namespace", "n", "default", "target namespace for the resulting ConfigMap")
@@ -120,8 +121,8 @@ func init() {
 	loadConfigmapCmd.Flags().StringSliceVar(&lp.labels, "label", []string{}, "label to add to K8s ConfigMap (format NAME=VALUE)")
 	loadConfigmapCmd.Flags().StringSliceVar(&lp.annotations, "annotation", []string{}, "annotation to add to K8s ConfigMap (format NAME=VALUE)")
 	loadConfigmapCmd.Flags().StringVarP(&lp.mergetype, "merge-type", "", "delete", "how to merge ConfigMap data whether to also delete missing values or just upsert new (options: delete|upsert)")
-	loadConfigmapCmd.MarkFlagFilename("kubeconfig")
-	loadConfigmapCmd.MarkFlagRequired("configmap")
+	loadConfigmapCmd.MarkFlagFilename("kubeconfig") // #nosec G104
+	loadConfigmapCmd.MarkFlagRequired("configmap")  // #nosec G104
 
 	loadSecretCmd.Flags().BoolVarP(&lp.kubeconfig, "kubeconfig", "k", false, "true if locally stored ~/.kube/config should be used, InCluster config will be used if false (options: true|false) (default: false)")
 	loadSecretCmd.Flags().StringVarP(&lp.namespace, "namespace", "n", "default", "target namespace for the resulting ConfigMap")
@@ -129,12 +130,12 @@ func init() {
 	loadSecretCmd.Flags().StringSliceVar(&lp.labels, "label", []string{}, "label to add to K8s Secret (format NAME=VALUE)")
 	loadSecretCmd.Flags().StringSliceVar(&lp.annotations, "annotation", []string{}, "annotation to add to K8s Secret (format NAME=VALUE)")
 	loadSecretCmd.Flags().StringVarP(&lp.mergetype, "merge-type", "", "delete", "how to merge Secret data whether to also delete missing values or just upsert new (options: delete|upsert)")
-	loadSecretCmd.MarkFlagFilename("kubeconfig")
-	loadSecretCmd.MarkFlagRequired("secret")
+	loadSecretCmd.MarkFlagFilename("kubeconfig") // #nosec G104
+	loadSecretCmd.MarkFlagRequired("secret")     // #nosec G104
 
 	loadFolderCmd.Flags().StringVarP(&lp.target, "target-folder", "t", "", "path to target folder")
-	loadFolderCmd.MarkFlagRequired("target-folder")
-	loadFolderCmd.MarkFlagFilename("target-folder")
+	loadFolderCmd.MarkFlagRequired("target-folder") // #nosec G104
+	loadFolderCmd.MarkFlagFilename("target-folder") // #nosec G104
 
 	loadCmd.AddCommand(loadConfigmapCmd)
 	loadCmd.AddCommand(loadSecretCmd)

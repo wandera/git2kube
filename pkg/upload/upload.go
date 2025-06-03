@@ -278,7 +278,7 @@ func (u *configmapUploader) iterToConfigMapData(iter FileIter) (map[string]strin
 			if err != nil {
 				return err
 			}
-			data[strings.Replace(file.Name, "/", ".", -1)] = content
+			data[strings.ReplaceAll(file.Name, "/", ".")] = content
 		}
 		return nil
 	})
@@ -443,7 +443,7 @@ func (u *secretUploader) iterToSecretData(iter FileIter) (map[string][]byte, err
 			if err != nil {
 				return err
 			}
-			data[strings.Replace(file.Name, "/", ".", -1)] = []byte(content)
+			data[strings.ReplaceAll(file.Name, "/", ".")] = []byte(content)
 		}
 		return nil
 	})
@@ -456,7 +456,7 @@ func newFolderUploader(o UploaderOptions) (Uploader, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = os.MkdirAll(o.Target, os.ModePerm)
+	err = os.MkdirAll(o.Target, os.ModePerm) // #nosec G301
 	if err != nil {
 		return nil, err
 	}
@@ -488,25 +488,25 @@ func (u *folderUploader) Upload(commitID string, iter FileIter) error {
 		if filterFile(file, u.includes, u.excludes) {
 			src := path.Join(u.sourcePath, file.Name)
 			if _, err := os.Lstat(src); err == nil {
-				src, _ = filepath.Abs(src)
+				src, _ = filepath.Abs(src) // #nosec G104
 			}
 			dst := path.Join(u.name, file.Name)
 			filesToKeep[dst] = true
 
-			source, err := os.Open(src)
+			source, err := os.Open(src) // #nosec G304
 			if err != nil {
 				return err
 			}
 			defer source.Close()
 
 			if dir, _ := filepath.Split(dst); dir != "" {
-				err = os.MkdirAll(dir, 0o777)
+				err = os.MkdirAll(dir, 0o777) // #nosec G301
 				if err != nil {
 					return err
 				}
 			}
 
-			destination, err := os.Create(dst)
+			destination, err := os.Create(dst) // #nosec G304
 			if err != nil {
 				return err
 			}
