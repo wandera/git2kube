@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/wandera/git2kube/pkg/cmd"
+	pkgcmd "github.com/wandera/git2kube/pkg/cmd"
 	"github.com/wandera/git2kube/pkg/fetch"
 	"github.com/wandera/git2kube/pkg/upload"
 )
@@ -28,7 +28,17 @@ var loadCmd = &cobra.Command{
 	Use:                "load",
 	Short:              "Loads files from git repository into target",
 	DisableFlagParsing: true,
-	PersistentPreRunE:  cmd.ExpandArgs,
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		err := pkgcmd.ExpandArgs(cmd, args)
+		if err != nil {
+			return err
+		}
+		// Call rootCmd's PersistentPreRunE if set
+		if rootCmd.PersistentPreRunE != nil {
+			return rootCmd.PersistentPreRunE(cmd, args)
+		}
+		return nil
+	},
 }
 
 var loadConfigmapCmd = &cobra.Command{
