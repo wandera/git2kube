@@ -7,7 +7,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var loglevel string
+var (
+	loglevel  string
+	logformat string
+)
 
 var rootCmd = &cobra.Command{
 	Use:               "git2kube",
@@ -21,12 +24,23 @@ var rootCmd = &cobra.Command{
 		}
 
 		log.SetLevel(lvl)
+
+		switch logformat {
+		case "json":
+			log.SetFormatter(&log.JSONFormatter{})
+		case "logfmt":
+			fallthrough
+		default:
+			log.SetFormatter(&log.TextFormatter{})
+		}
+
 		return nil
 	},
 }
 
 func init() {
 	rootCmd.PersistentFlags().StringVarP(&loglevel, "log-level", "l", "info", fmt.Sprintf("command log level (options: %s)", log.AllLevels))
+	rootCmd.PersistentFlags().StringVar(&logformat, "log-format", "logfmt", "log output format (options: logfmt, json)")
 
 	rootCmd.AddCommand(loadCmd)
 	rootCmd.AddCommand(watchCmd)
