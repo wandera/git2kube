@@ -9,8 +9,9 @@ Commandline tool for loading files from git repository into K8s ConfigMap
 ### Options
 
 ```
-  -h, --help               help for git2kube
-  -l, --log-level string   command log level (options: [panic fatal error warning info debug trace]) (default "info")
+  -h, --help                help for git2kube
+      --log-format string   log output format (options: logfmt, json) (default "logfmt")
+  -l, --log-level string    command log level (options: [panic fatal error warning info debug trace]) (default "info")
 ```
 
 ### SEE ALSO
