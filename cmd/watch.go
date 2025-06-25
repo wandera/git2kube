@@ -9,7 +9,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/wandera/git2kube/pkg/cmd"
+	pkgcmd "github.com/wandera/git2kube/pkg/cmd"
 	"github.com/wandera/git2kube/pkg/fetch"
 	"github.com/wandera/git2kube/pkg/upload"
 )
@@ -42,7 +42,17 @@ var watchCmd = &cobra.Command{
 	Use:                "watch",
 	Short:              "Runs watcher that periodically check the provided repository",
 	DisableFlagParsing: true,
-	PersistentPreRunE:  cmd.ExpandArgs,
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		err := pkgcmd.ExpandArgs(cmd, args)
+		if err != nil {
+			return err
+		}
+		// Call rootCmd's PersistentPreRunE if set
+		if rootCmd.PersistentPreRunE != nil {
+			return rootCmd.PersistentPreRunE(cmd, args)
+		}
+		return nil
+	},
 }
 
 var watchConfigmapCmd = &cobra.Command{
