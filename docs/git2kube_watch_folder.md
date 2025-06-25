@@ -23,6 +23,7 @@ git2kube watch folder [flags]
       --healthcheck-file string   path to file where each refresh writes if it was successful or not, useful for K8s liveness/readiness probe
       --include strings           regex that if is a match includes the file in the upload, example: '*.yaml' or 'folder/*' if you want to match a folder (default [.*])
   -i, --interval int              interval in seconds in which to try refreshing ConfigMap from git (default 10)
+      --log-format string         log output format (options: logfmt, json) (default "logfmt")
   -l, --log-level string          command log level (options: [panic fatal error warning info debug trace]) (default "info")
   -p, --ssh-key string            path to the SSH private key (git repository address should be 'git@<address>', example: git@github.com:wandera/git2kube.git)
 ```

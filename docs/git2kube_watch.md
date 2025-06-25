@@ -19,7 +19,8 @@ Runs watcher that periodically check the provided repository
 ### Options inherited from parent commands
 
 ```
-  -l, --log-level string   command log level (options: [panic fatal error warning info debug trace]) (default "info")
+      --log-format string   log output format (options: logfmt, json) (default "logfmt")
+  -l, --log-level string    command log level (options: [panic fatal error warning info debug trace]) (default "info")
 ```
 
 ### SEE ALSO
